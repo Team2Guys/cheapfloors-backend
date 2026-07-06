@@ -195,6 +195,19 @@ model Appointment {
   AppointsType   AppointsType @default(installations)
 }
 
+
+
+model RequestCallback {
+  id        Int         @id @default(autoincrement())
+  name      String
+  email     String
+  phone     String
+  whatsapp  String?
+  createdAt DateTime?   @default(now())
+  updatedAt DateTime?   @updatedAt
+  status    BlogStatus? @default(PUBLISHED)
+}
+
 model User {
   id           Int     @id @default(autoincrement())
   name         String
@@ -289,6 +302,7 @@ model B2BQuote {
   updatedAt       DateTime?
   status          BlogStatus? @default(PUBLISHED)
 }
+
 
 model Reviews {
   id                 Int       @id @default(autoincrement())
