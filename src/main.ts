@@ -57,7 +57,11 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: [process.env.CLIENT_URL_2, process.env.CLIENT_URL_1],
+    origin: [
+      process.env.CLIENT_URL_3,
+      process.env.CLIENT_URL_2,
+      process.env.CLIENT_URL_1,
+    ],
     credentials: true,
     allowedHeaders: ['Authorization', 'Content-Type'],
   });

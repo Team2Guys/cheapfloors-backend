@@ -284,7 +284,7 @@ export const sendRequestCallbackEmail = async (
   try {
     // Internal notification to the team.
     await transporter.sendMail({
-      from: `Callback Request @EF ${process.env.EMAIL_USER}`,
+      from: `Callback Request @CF ${process.env.EMAIL_USER}`,
       to: `${process.env.EMAIL_USER},${process.env.ORDER_MAIL1},${process.env.ORDER_MAIL2},${process.env.ORDER_MAIL3}`,
       subject: `New Callback Request from ${name}`,
       html: htmlTemplate,
@@ -447,7 +447,7 @@ export const sendB2BQuoteEmail = async (quoteData: CreateB2bQuoteInput) => {
   try {
     // Internal notification to the B2B / sales team.
     await transporter.sendMail({
-      from: `B2B Quote Request @EF ${process.env.EMAIL_USER}`,
+      from: `B2B Quote Request @CF ${process.env.EMAIL_USER}`,
       to: `${process.env.EMAIL_USER},${process.env.ORDER_MAIL1},${process.env.ORDER_MAIL2},${process.env.ORDER_MAIL3}`,
       subject: `New B2B Flooring Quote Request from ${companyName}`,
       html: htmlTemplate,
@@ -627,7 +627,7 @@ export const sendEmailHandler = async (
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>${orderStatus === 'delivered' || orderStatus === 'shipped' ? (orderStatus === 'shipped' ? 'Your EasyFloor Order Is On Its Way!' : 'Your EasyFloor Order Has Arrived!') : orderDetails.isfreesample ? 'Free Sample Order Confirmation' : 'Order Confirmation'}</title>
+ <title>${orderStatus === 'delivered' || orderStatus === 'shipped' ? (orderStatus === 'shipped' ? 'Your Cheapfloors Order Is On Its Way!' : 'Your Cheapfloors Order Has Arrived!') : orderDetails.isfreesample ? 'Free Sample Order Confirmation' : 'Order Confirmation'}</title>
  <style>
     body {
        font-family: Arial, sans-serif;
@@ -1156,27 +1156,27 @@ export const sendEmailHandler = async (
 
   try {
     await transporter.sendMail({
-      from: `${orderStatus === 'delivered' || orderStatus === 'shipped' ? (orderStatus === 'shipped' ? 'Order Shipped @EF' : 'Order Received @EF') : 'Order Confirmation @EF'} ${process.env.EMAIL_USER}`,
+      from: `${orderStatus === 'delivered' || orderStatus === 'shipped' ? (orderStatus === 'shipped' ? 'Order Shipped @CF' : 'Order Received @CF') : 'Order Confirmation @CF'} ${process.env.EMAIL_USER}`,
       to: `${process.env.EMAIL_USER},${process.env.ORDER_MAIL1},${process.env.ORDER_MAIL2},${process.env.ORDER_MAIL3}`,
       subject:
         orderStatus === 'delivered' || orderStatus === 'shipped'
           ? orderStatus === 'shipped'
-            ? 'Your EasyFloor Order Is On Its Way!'
-            : 'Your EasyFloor Order Has Arrived!'
-          : `Order has been confirmed @ EF against Order # ${orderId}`,
+            ? 'Your Cheapfloors Order Is On Its Way!'
+            : 'Your Cheapfloors Order Has Arrived!'
+          : `Order has been confirmed @ CF against Order # ${orderId}`,
 
       html: emailTemplate,
     });
 
     await transporter.sendMail({
-      from: `${orderStatus === 'delivered' || orderStatus === 'shipped' ? (orderStatus === 'shipped' ? 'Order Shipped @EF' : 'Order Received @EF') : 'Order Confirmation @EF'} ${process.env.EMAIL_USER}`,
+      from: `${orderStatus === 'delivered' || orderStatus === 'shipped' ? (orderStatus === 'shipped' ? 'Order Shipped @CF' : 'Order Received @CF') : 'Order Confirmation @CF'} ${process.env.EMAIL_USER}`,
       to: CustomerEmail,
       subject:
         orderStatus === 'delivered' || orderStatus === 'shipped'
           ? orderStatus === 'shipped'
-            ? 'Your EasyFloor Order Is On Its Way!'
-            : 'Your EasyFloor Order Has Arrived!'
-          : `Order has been confirmed @ EF against Order # ${orderId}`,
+            ? 'Your Cheapfloors Order Is On Its Way!'
+            : 'Your Cheapfloors Order Has Arrived!'
+          : `Order has been confirmed @ CF against Order # ${orderId}`,
 
       html: emailTemplate,
     });
