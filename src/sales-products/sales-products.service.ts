@@ -17,7 +17,7 @@ import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class SalesProductsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(createSalesProductInput: CreateOrderInput) {
     try {
@@ -48,7 +48,7 @@ export class SalesProductsService {
           phone_number: billing_data.phone,
         },
         special_reference: orderId,
-        redirection_url: 'https://easyfloors.ae/thank-you' as RequestRedirect,
+        redirection_url: 'https://cheapfloors.ae/thank-you' as RequestRedirect,
       });
 
       var requestOptions = {

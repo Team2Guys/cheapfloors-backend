@@ -214,7 +214,7 @@ export const sendAppointmentEmail = async (
           
             </div>
           <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} Easyfloors. All rights reserved.</p>
+            <p>&copy; ${new Date().getFullYear()} Cheapfloors. All rights reserved.</p>
             <p>This is an automated message. Please do not reply directly to this email unless instructed.</p>
           </div>
         </div>
@@ -292,7 +292,7 @@ export const sendRequestCallbackEmail = async (
 
     // Acknowledgement to the customer.
     await transporter.sendMail({
-      from: `EasyFloors ${process.env.EMAIL_USER}`,
+      from: `Cheapfloors ${process.env.EMAIL_USER}`,
       to: `${email}`,
       subject: 'We received your callback request',
       html: htmlTemplate,
@@ -323,11 +323,11 @@ export const sendB2BQuoteEmail = async (quoteData: CreateB2bQuoteInput) => {
   const productPreference =
     Array.isArray(productRequired) && productRequired.length
       ? productRequired
-          .map((p: any) =>
-            typeof p === 'string' ? p : p?.label || p?.name || p?.value || '',
-          )
-          .filter(Boolean)
-          .join(', ')
+        .map((p: any) =>
+          typeof p === 'string' ? p : p?.label || p?.name || p?.value || '',
+        )
+        .filter(Boolean)
+        .join(', ')
       : '';
 
   // Trade license is an uploaded asset (Cloudinary-style Json). Link to it when available.
@@ -422,19 +422,19 @@ export const sendB2BQuoteEmail = async (quoteData: CreateB2bQuoteInput) => {
               ${fullRow(icons.company, 'Company Name', companyName)}
               ${fullRow(icons.product, 'Product Preference', productPreference)}
               ${twoColRow(
-                block(icons.quantity, 'Quantity', quantity),
-                block(icons.budget, 'Budget', budgetRange || '—'),
-              )}
+    block(icons.quantity, 'Quantity', quantity),
+    block(icons.budget, 'Budget', budgetRange || '—'),
+  )}
               ${fullRow(
-                icons.requirements,
-                'Requirements',
-                additionalInfo ? `"${additionalInfo}"` : '',
-                'font-style:italic; color:#555555;',
-              )}
+    icons.requirements,
+    'Requirements',
+    additionalInfo ? `"${additionalInfo}"` : '',
+    'font-style:italic; color:#555555;',
+  )}
               ${twoColRow(
-                block(icons.doc, 'Trade License', licenseValue),
-                block(icons.doc, 'TRN Number', trnNumber),
-              )}
+    block(icons.doc, 'Trade License', licenseValue),
+    block(icons.doc, 'TRN Number', trnNumber),
+  )}
             </table>
           </td></tr>
         </table>
@@ -455,7 +455,7 @@ export const sendB2BQuoteEmail = async (quoteData: CreateB2bQuoteInput) => {
 
     // Acknowledgement to the customer.
     await transporter.sendMail({
-      from: `EasyFloors B2B ${process.env.EMAIL_USER}`,
+      from: `Cheapfloors B2B ${process.env.EMAIL_USER}`,
       to: `${email}`,
       subject: 'We received your flooring quote request',
       html: htmlTemplate,
@@ -950,12 +950,12 @@ export const sendEmailHandler = async (
        </div>
        <p class="order-para" style="text-align:center;">Dear <b>${firstName} ${lastName},</b></p>
        <p class="order-para" style="text-align:center;">I’m delighted that you have received your order and would love to hear your thoughts. If everything went great, it would be so helpful if you could leave a nice review for us at <a href="https://g.page/r/CYR9R3Rk3eRjEBM/review"><b>Google</b></a></p>
-       <p class="order-para" style="text-align:center;">In case there was any areas of the process that fell short of your expectations, I can only apologise for this and I would be very grateful if you could contact me directly on <a href="mailto:cs@easyfloors.ae"><b>cs@easyfloors.ae</b></a></p>
-       <p class="order-para" style="text-align:center;">We at <a href="https://easyfloors.ae/"><b>easyfloors.ae</b></a>, appreciate that we’re not the only supplier in Dubai and giving a 5-star experience to our customers is our minimum goal, so all feedback would be taken seriously and any improvements would be implemented right away.</p>
+       <p class="order-para" style="text-align:center;">In case there was any areas of the process that fell short of your expectations, I can only apologise for this and I would be very grateful if you could contact me directly on <a href="mailto:cs@cheapfloors.ae"><b>cs@cheapfloors.ae</b></a></p>
+       <p class="order-para" style="text-align:center;">We at <a href="https://cheapfloors.ae/"><b>cheapfloors.ae</b></a>, appreciate that we’re not the only supplier in Dubai and giving a 5-star experience to our customers is our minimum goal, so all feedback would be taken seriously and any improvements would be implemented right away.</p>
        <p class="order-para" style="text-align:center;">Once again, a personal thank you for your faith in our company and I look forward to serving you again in the future.</p>
        <p class="order-para" style="text-align:center;">Best regards</p>
        <p class="order-para" style="text-align:center;">Shiraz</p>
-       <p class="order-para" style="text-align:center;">Owner, <a href="https://easyfloors.ae/"><b>https://easyfloors.ae/</b></a></p>
+       <p class="order-para" style="text-align:center;">Owner, <a href="https://cheapfloors.ae/"><b>https://cheapfloors.ae/</b></a></p>
 
        
        `
@@ -984,13 +984,13 @@ export const sendEmailHandler = async (
        </div>
        <p style="text-align:center;" class="order-para">Dear <b>Customer,</b></p>
        <p style="text-align:center;" class="order-para">Thank you very much for the order <br> you placed with <a
-             href="https://easyfloors.ae/"><b>https://easyfloors.ae/</b></a></p>
-       <a href="https://easyfloors.ae/track-order/${orderDetails.orderId}" class="order-button"> ${orderDetails.isfreesample ? ' View Your Free Sample Order' : 'View Your Order'}</a>
+             href="https://cheapfloors.ae/"><b>https://cheapfloors.ae/</b></a></p>
+       <a href="https://cheapfloors.ae/track-order/${orderDetails.orderId}" class="order-button"> ${orderDetails.isfreesample ? ' View Your Free Sample Order' : 'View Your Order'}</a>
        <p style="text-align:center;" class="order-para">Your ${orderDetails.isfreesample ? 'Free Sample order' : 'order'} has now been sent to the warehouse to prepare for packing and
           dispatch.</p>
        <p style="text-align:center;" class="order-para">Our team will be in touch soon to arrange the delivery with you.</p>
        <p style="text-align:center;" class="order-para">All The Best,</p>
-       <p style="text-align:center;" class="order-para">The Team at<strong> @"Easyfloors"</strong></p>
+       <p style="text-align:center;" class="order-para">The Team at<strong> @"cheapfloors"</strong></p>
        <div class="purchase-details">
           <h3>Purchase Details</h3>
           <table class="purchase-table">
@@ -1138,18 +1138,16 @@ export const sendEmailHandler = async (
              style="display: block; margin: auto; max-width: 100%; height: auto;">
 </div>
 <div class="categories">
- <a target="_blank" href=https://easyfloors.ae/spc-flooring>SPC Flooring</a>
- <a target="_blank" href=https://easyfloors.ae/lvt-flooring>LVT Flooring</a>
- <a target="_blank" href=https://easyfloors.ae/richmond-flooring> Richmond Flooring</a>
- <a target="_blank" href=https://easyfloors.ae/polar-flooring>Polar Flooring</a>
+ <a target="_blank" href=https://cheapfloors.ae/spc-flooring>SPC Flooring</a>
+ <a target="_blank" href=https://cheapfloors.ae/lvt-flooring>LVT Flooring</a>
+ <a target="_blank" href=https://cheapfloors.ae/richmond-flooring> Richmond Flooring</a>
+ <a target="_blank" href=https://cheapfloors.ae/polar-flooring>Polar Flooring</a>
 
 </div>
 <div class="social-icons">
- <a href="https://www.facebook.com/easyfloorsuae" target="_blank"> <img
+ <a href="https://www.facebook.com/cheapfloorsuae" target="_blank"> <img
        src="https://res.cloudinary.com/dgwsc8f0g/image/upload/v1739185482/facebook-icon_tdqcrw.png"></a>
- <a href="https://www.pinterest.com/easyfloorsuae/" target="_blank"> <img
-       src="https://res.cloudinary.com/dgwsc8f0g/image/upload/v1739185483/pinterest-icon_dsvge7.png"
-       alt="pinterest"></a>
+
 </div>
 </div>
 </body>

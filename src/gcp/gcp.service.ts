@@ -11,7 +11,7 @@ export class GoogleMerchantService {
     private readonly authService: GoogleAuthService,
 
     private prisma: PrismaService,
-  ) {}
+  ) { }
 
   private readonly PRODUCT_URL =
     'https://rfrichmond.com/available-products.json';
@@ -28,7 +28,7 @@ export class GoogleMerchantService {
     const responses: any = [];
 
     for (const product of products) {
-      let url = 'https://easyfloors.ae/';
+      let url = 'https://cheapfloors.ae/';
 
       if (product.subcategory) {
         url += `${product.category?.RecallUrl}/${product.subcategory.custom_url}/${product.custom_url}`;

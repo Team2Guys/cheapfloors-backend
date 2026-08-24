@@ -41,12 +41,12 @@ jobs:
           [ -s "\$NVM_DIR/nvm.sh" ] && \. "\$NVM_DIR/nvm.sh" # This loads nvm
           [ -s "\$NVM_DIR/bash_completion" ] && \. "\$NVM_DIR/bash_completion" # This loads nvm bash_completion
           nvm use 20
-          cd /var/www/easyfloors/server
+          cd /var/www/cheapfloors/server
           git pull origin server
           
           npm install 
           npx prisma generate
           npm run build
-          pm2 restart easyfloors_be --update-env
+          pm2 restart cheapfloors_be --update-env
           exit
           EOF
