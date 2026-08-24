@@ -2,6 +2,7 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { CreateAppointmentInput } from '../appointments/dto/create-appointment.input';
 import { CreateRequestCallbackInput } from '../request_callbacks/dto/create-request-callback.input';
+import { CreateB2bQuoteInput } from '../b2b_quotes/dto/create-b2b-quote.input';
 import nodemailer from 'nodemailer';
 import {
   contactUsEmailInput,
@@ -135,35 +136,32 @@ export const sendAppointmentEmail = async (
               <span class="label">Phone Number:</span> ${phoneNumber}
             </div>
 
-            ${
-              whatsappNumber
-                ? `
+            ${whatsappNumber
+      ? `
               <div class="field">
                 <span class="label">WhatsApp Number:</span> ${whatsappNumber}
               </div>
             `
-                : ''
-            }
+      : ''
+    }
 
-            ${
-              area
-                ? `
+            ${area
+      ? `
               <div class="field">
                 <span class="label">Area:</span> ${area}
               </div>
             `
-                : ''
-            }
+      : ''
+    }
 
-            ${
-              selectRooms
-                ? `
+            ${selectRooms
+      ? `
               <div class="field">
                 <span class="label">Approximate Area :</span> ${selectRooms}
               </div>
             `
-                : ''
-            }
+      : ''
+    }
 
             <div class="field highlight">
               <span class="label">Preferred Date:</span> 
@@ -175,43 +173,40 @@ export const sendAppointmentEmail = async (
               ${preferredTime || 'Not specified'}
             </div>
 
-            ${
-              findUs
-                ? `
+            ${findUs
+      ? `
               <div class="field">
                 <span class="label">How You Found Us:</span> ${findUs}
               </div>
             `
-                : ''
-            }
+      : ''
+    }
 
-            ${
-              comment
-                ? `
+            ${comment
+      ? `
               <div class="field">
                 <span class="label">Comments:</span>
                 <p>${comment}</p>
               </div>
             `
-                : ''
-            }
+      : ''
+    }
 
-            ${
-              contactMethod
-                ? `
+            ${contactMethod
+      ? `
               <div class="field">
                 <span class="label">Preferred Contact Method:</span>
                 ${[
-                  contactMethod.whatsapp && 'WhatsApp',
-                  contactMethod.telephone && 'Call',
-                  contactMethod.email && 'Email',
-                ]
-                  .filter(Boolean)
-                  .join(', ')}
+        contactMethod.whatsapp && 'WhatsApp',
+        contactMethod.telephone && 'Call',
+        contactMethod.email && 'Email',
+      ]
+        .filter(Boolean)
+        .join(', ')}
               </div>
                 `
-                : ''
-            }
+      : ''
+    }
 
 <div class='text-center'>Measurement appointment will be charged at <strong>AED 150</strong> for Dubai and other emirates <strong>AED 250</strong>, which is fully <strong>REFUNDABLE</strong> if you place an order with us.</div>
 
@@ -226,7 +221,7 @@ export const sendAppointmentEmail = async (
       </body>
     </html>
   `;
-
+  console.log(AppointsType, 'AppointsType');
   try {
     await transporter.sendMail({
       from: `${AppointsType == 'appointments' ? 'Measurement Appointment' : 'Installation Appointments'} ${process.env.EMAIL_USER}`,
@@ -305,6 +300,169 @@ export const sendRequestCallbackEmail = async (
   } catch (error) {
     console.error('Error sending callback request email:', error);
     throw new Error('Failed to send callback request email');
+  }
+};
+
+export const sendB2BQuoteEmail = async (quoteData: CreateB2bQuoteInput) => {
+  const {
+    fullName,
+    phone,
+    email,
+    companyName,
+    role,
+    quantity,
+    productRequired,
+    projectStatus,
+    budgetRange,
+    additionalInfo,
+    tradeLicense,
+    trnNumber,
+  } = quoteData;
+
+  // Normalise the multi-select product field into a readable string.
+  const productPreference =
+    Array.isArray(productRequired) && productRequired.length
+      ? productRequired
+          .map((p: any) =>
+            typeof p === 'string' ? p : p?.label || p?.name || p?.value || '',
+          )
+          .filter(Boolean)
+          .join(', ')
+      : '';
+
+  // Trade license is an uploaded asset (Cloudinary-style Json). Link to it when available.
+  const licenseUrl =
+    tradeLicense &&
+    (tradeLicense.secure_url ||
+      tradeLicense.url ||
+      (Array.isArray(tradeLicense) && tradeLicense[0]?.secure_url) ||
+      (Array.isArray(tradeLicense) && tradeLicense[0]?.url));
+
+  // Icons are hosted as PNGs on Cloudinary so they render in every mail client
+  // (Gmail, Outlook, etc. strip inline SVG, which is why they didn't show before).
+  const ICON_BASE =
+    'https://res.cloudinary.com/dmmeqgdhv/image/upload/w_88,h_88,c_fit/b2b-quote-icons';
+  const icon = (name: string, alt: string) =>
+    `<img src="${ICON_BASE}/${name}.png" width="22" height="22" alt="${alt}" style="display:block; border:0; outline:none;" />`;
+  const icons = {
+    user: icon('user', 'Full name'),
+    email: icon('email', 'Email'),
+    phone: icon('phone', 'Phone'),
+    role: icon('role', 'Role'),
+    company: icon('company', 'Company'),
+    product: icon('product', 'Product'),
+    quantity: icon('quantity', 'Quantity'),
+    budget: icon('budget', 'Budget'),
+    requirements: icon('requirements', 'Requirements'),
+    doc: icon('doc', 'Document'),
+  };
+
+  // A single icon + label + value block (used full-width and inside 2-column rows).
+  const block = (
+    icon: string,
+    label: string,
+    value: string,
+    valueStyle = '',
+  ) => `
+    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;">
+      <tr>
+        <td width="34" valign="top" style="padding-top:1px;">${icon}</td>
+        <td valign="top" style="padding-left:4px;">
+          <div style="font-size:11px; letter-spacing:0.8px; text-transform:uppercase; color:#9a9a9a; font-weight:bold; margin-bottom:6px; font-family:Arial, sans-serif;">${label}</div>
+          <div style="font-size:16px; color:#2b2b2b; font-family:Arial, sans-serif; line-height:1.4; ${valueStyle}">${value}</div>
+        </td>
+      </tr>
+    </table>`;
+
+  const fullRow = (
+    icon: string,
+    label: string,
+    value: string,
+    valueStyle = '',
+  ) =>
+    value
+      ? `<tr><td colspan="2" style="padding:16px 6px; border-bottom:1px solid #e6e6e6;">${block(icon, label, value, valueStyle)}</td></tr>`
+      : '';
+
+  const twoColRow = (left: string, right: string) => `
+    <tr>
+      <td width="50%" valign="top" style="padding:16px 14px 16px 6px; border-bottom:1px solid #e6e6e6;">${left}</td>
+      <td width="50%" valign="top" style="padding:16px 6px 16px 14px; border-bottom:1px solid #e6e6e6;">${right}</td>
+    </tr>`;
+
+  const licenseValue = licenseUrl
+    ? `<a href="${licenseUrl}" target="_blank" style="color:#2b2b2b; text-decoration:underline;">Uploaded</a>`
+    : 'Uploaded';
+
+  const htmlTemplate = `<!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin:0; padding:0; background-color:#ffffff; font-family:Arial, sans-serif;">
+      <div style="max-width:520px; margin:24px auto; background:#f4f4f4; border-radius:10px; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,0.08);">
+
+        <!-- Header bar -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#feb907;">
+          <tr>
+            <td style="padding:15px 22px; font-size:12px; font-weight:bold; letter-spacing:1px; text-transform:uppercase; color:#3d2f00; font-family:Arial, sans-serif;">Inquiry Summary</td>
+            <td align="right" style="padding:15px 22px; font-size:12px; font-weight:bold; letter-spacing:0.5px; color:#3d2f00; font-family:Arial, sans-serif;">REF: #EF-${new Date().getFullYear()}-B2B</td>
+          </tr>
+        </table>
+
+        <!-- Details -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; padding:0; background:#f4f4f4;">
+          <tr><td style="padding:6px 16px 0;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+              ${fullRow(icons.user, 'Full Name', fullName)}
+              ${fullRow(icons.email, 'Email Address', email)}
+              ${fullRow(icons.phone, 'Phone / WhatsApp', phone)}
+              ${fullRow(icons.role, 'Your Role', role || '')}
+              ${fullRow(icons.company, 'Company Name', companyName)}
+              ${fullRow(icons.product, 'Product Preference', productPreference)}
+              ${twoColRow(
+                block(icons.quantity, 'Quantity', quantity),
+                block(icons.budget, 'Budget', budgetRange || '—'),
+              )}
+              ${fullRow(
+                icons.requirements,
+                'Requirements',
+                additionalInfo ? `"${additionalInfo}"` : '',
+                'font-style:italic; color:#555555;',
+              )}
+              ${twoColRow(
+                block(icons.doc, 'Trade License', licenseValue),
+                block(icons.doc, 'TRN Number', trnNumber),
+              )}
+            </table>
+          </td></tr>
+        </table>
+
+        <div style="height:14px; background:#f4f4f4;"></div>
+      </div>
+    </body>
+  </html>`;
+
+  try {
+    // Internal notification to the B2B / sales team.
+    await transporter.sendMail({
+      from: `B2B Quote Request @EF ${process.env.EMAIL_USER}`,
+      to: `${process.env.EMAIL_USER},${process.env.ORDER_MAIL1},${process.env.ORDER_MAIL2},${process.env.ORDER_MAIL3}`,
+      subject: `New B2B Flooring Quote Request from ${companyName}`,
+      html: htmlTemplate,
+    });
+
+    // Acknowledgement to the customer.
+    await transporter.sendMail({
+      from: `EasyFloors B2B ${process.env.EMAIL_USER}`,
+      to: `${email}`,
+      subject: 'We received your flooring quote request',
+      html: htmlTemplate,
+    });
+  } catch (error) {
+    console.error('Error sending B2B quote email:', error);
+    throw new Error('Failed to send B2B quote request email');
   }
 };
 
@@ -430,9 +588,11 @@ export const sendEmailHandler = async (
   }
   const orderDate = new Date(
     orderDetails?.transactionDate ||
-      (orderDetails as any)?.checkoutDate ||
-      Date.now(),
+    (orderDetails as any)?.checkoutDate ||
+    Date.now(),
   );
+
+  const subTotal = totalPrice && shipmentFee ? totalPrice - shipmentFee : totalPrice || 0;
 
   function trackingOrder(
     shippingMethod: 'Standard Shipping' | 'Express Shipping' | 'Self Collect',
@@ -781,9 +941,8 @@ export const sendEmailHandler = async (
        <h3 style="text-align:center; margin:0; padding:0; color: black;">ORDER#${orderId}</h3>
        <p style="text-align:center;margin:0;padding:0; color: black;">${formattedDate}</p>
        
-       ${
-         orderStatus === 'delivered'
-           ? `
+       ${orderStatus === 'delivered'
+      ? `
      <h1 style="text-align:center; color: black;">${orderDetails.isfreesample ? 'Free Sample Goods Received' : 'Goods Received'}</h1>
        <div class="progress-container" style="text-align:center;">
           <img src="https://res.cloudinary.com/dvniplydn/image/upload/v1772187242/delivered.jpg_ygnz9p.jpg"
@@ -800,8 +959,8 @@ export const sendEmailHandler = async (
 
        
        `
-           : orderStatus === 'shipped'
-             ? `
+      : orderStatus === 'shipped'
+        ? `
        <h1 style="text-align:center; color: black;">${orderDetails.isfreesample ? 'Free Sample Goods Are Ready to Ship' : 'Goods Are Ready to Ship'}</h1>
 
        <div class="progress-container" style="text-align:center;">
@@ -816,7 +975,7 @@ export const sendEmailHandler = async (
         <p class="order-para" style="text-align:center;">In the meantime, sit back and relax and we’ll see you soon!</p>
        <p class="order-para" style="text-align:center;">All The Best</p>
        `
-             : `
+        : `
        <h1 style="text-align:center; color: black;">${orderDetails.isfreesample ? 'Free Sample Order Confirmation' : 'Order Confirmation'}</h1>
 
        <div class="progress-container" style="text-align:center;">
@@ -837,67 +996,68 @@ export const sendEmailHandler = async (
           <table class="purchase-table">
              <thead>
                 <tr>
-                   <th style="padding: 10px 2px; width: 60%" class="table-font">Product</th>
-                   <th style="padding: 10px 2px;  width: 25%; text-align: center;" class="table-font">Product Price</th>
-                   <th style="padding: 10px 2px;  width: 15%; text-align: center;" class="table-font">Price</th>
+                   <th style="padding: 10px 2px; width: 50%" class="table-font">Product</th>
+                   <th style="padding: 10px 2px;  width: 15%; text-align: center;" class="table-font">Price excl VAT</th>
+                   <th style="padding: 10px 2px;  width: 10%; text-align: center;" class="table-font">VAT rate</th>
+                   <th style="padding: 10px 2px;  width: 12.5%; text-align: center;" class="table-font">VAT amount</th>
+                   <th style="padding: 10px 2px;  width: 15%; text-align: center;" class="table-font">Price incl VAT</th>
                 </tr>
              </thead>
 
 
              <tbody>
                 ${products
-                  ?.map(
-                    (product, index) => `
+          ?.map(
+            (product, index) => `
                 <tr key="${index}">
                    <td style="padding: 10px 2px;" class="product-title-wrapper">
-                      <div style="display:flex; gap:5px; align-items:center; justify-content:flex-start;">
+                      <div style="display:flex; gap:5px; align-items:center; justify-content:center;">
                          <img
                             src="${product.image}"
-                            alt="${product.name}" style="height:70px; width:70px;" class="product-img">
+                            alt="${product.name}" style="height:60px; width:60px;" class="product-img">
                          <div>
                             <p class="table-font" style="margin-left: 5px; margin-bottom: 0px; margin-top: 0px; color: black; font-weight: 600;">${product.name}</p>
-                          ${
-                            orderDetails.isfreesample
-                              ? `<p class="table-font" style="margin-left: 5px; margin-top: 5px; color: black;">Sample Piece</p>`
-                              : product.isClearance
-                                ? `<p class="table-font" style="margin-left: 5px; margin-top: 5px; color: black;">Bundle: ${Number(product.squareMeter).toFixed(2)} SQM</p>`
-                                : `<p class="table-font" style="margin-left: 5px; margin-top: 5px; color: black;"><b>${product?.category?.trim()?.toLowerCase() == 'accessories' ? 'No .of Pieces' : 'Area:'}:</b> ${product?.category?.trim()?.toLowerCase() == 'accessories' ? product.requiredBoxes : `${product.squareMeter} SQM`}</p>`
-                          }
-                               ${
-                                 product?.category?.trim()?.toLowerCase() ==
-                                   'accessories' || orderDetails.isfreesample
-                                   ? ''
-                                   : product?.addInstallation
-                                     ? `
+                          ${orderDetails.isfreesample
+                ? `<p class="table-font" style="margin-left: 5px; margin-top: 5px; color: black;">Sample Piece</p>`
+                : product.isClearance
+                  ? `<p class="table-font" style="margin-left: 5px; margin-top: 5px; color: black;">Bundle: ${Number(product.squareMeter).toFixed(2)} SQM</p>`
+                  : `<p class="table-font" style="margin-left: 5px; margin-top: 5px; color: black;"><b>${product?.category?.trim()?.toLowerCase() == 'accessories' ? 'No .of Pieces' : 'Area:'}:</b> ${product?.category?.trim()?.toLowerCase() == 'accessories' ? product.requiredBoxes : `${product.squareMeter} SQM`}</p>`
+              }
+                               ${product?.category?.trim()?.toLowerCase() ==
+                'accessories' || orderDetails.isfreesample
+                ? ''
+                : product?.addInstallation
+                  ? `
                <p class="table-font" style="margin-left: 5px; margin-top: 5px; color: black;">
                   <b>Installation Cost:</b> ${product?.installationCost.toFixed(2)}
                </p>
                `
-                                     : `
+                  : `
                <p class="table-font" style="margin-left: 5px; margin-top: 5px; color: black;">
                   <b>Installation:</b> Not included
                </p>
                `
-                               }
+              }
 
-                     ${
-                       product?.selectedColor?.color
-                         ? `
+                     ${product?.selectedColor?.color
+                ? `
                <p class="table-font" style="margin-left: 5px; margin-top: 5px; color: black;">
                   <b>Color:</b> ${product?.selectedColor?.colorName} (${product?.selectedColor?.color})
                </p>
                `
-                         : ''
-                     }
+                : ''
+              }
                          </div>
                       </div>
                    </td>
-                   <td class="table-font" style="text-align:center; padding: 10px 2px;">${product.price || 'Free'}</td>
+                   <td class="table-font" style="text-align:center; padding: 10px 2px;">${(product.totalPrice - ((product.totalPrice) - (product.totalPrice / 1.05))).toFixed(2) || 'Free'}</td>
+                   <td class="table-font" style="text-align:center; padding: 10px 2px;">5.00%</td>
+                   <td class="table-font" style="text-align:center; padding: 10px 2px;">${((product.totalPrice) - (product.totalPrice / 1.05)).toFixed(2) || 'Free'}</td>
                    <td class="table-font" style="text-align:center; padding: 10px 2px;">${product.totalPrice.toFixed(2) || 'Free'}</td>
                 </tr>
                 `,
-                  )
-                  .join('')}
+          )
+          .join('')}
              </tbody>
 
 
@@ -949,12 +1109,16 @@ export const sendEmailHandler = async (
                       <table style="border-collapse: collapse;">
                          <tr>
                             <td colspan="5" style="padding: 8px;" class="table-font">Subtotal</td>
-                            <td style="padding: 8px;" class="table-font">${totalPrice && shipmentFee ? totalPrice - shipmentFee : totalPrice || 0}</td>
+                            <td style="padding: 8px;" class="table-font">${(subTotal - ((subTotal) - (subTotal / 1.05))).toFixed(2)}</td>
                          </tr>
-                         <tr style="border-bottom: 2px solid #ccc;">
+                         <tr>
                             <td colspan="5" style="padding: 8px;" class="table-font">Shipment</td>
                             <td style="padding: 8px;" class="table-font">${shipmentFee === 0 ? 'Free' : shipmentFee}</td>
                          </tr>
+                          <tr style="border-bottom: 2px solid #ccc;">
+                              <td colspan="5" style="padding: 8px;" class="table-font">VAT</td>
+                              <td style="padding: 8px;" class="table-font">${(((totalPrice || 0) - ((subTotal - ((subTotal) - (subTotal / 1.05))))) - (shipmentFee || 0)).toFixed(2)}</td>
+                           </tr>
                          <tr>
                             <td colspan="5" style="padding: 8px; font-weight: bold; " class="table-font">Total Incl. VAT</td>
                             <td style="padding: 8px; font-weight: bold;" class="table-font">${totalPrice || 0}</td>
@@ -967,7 +1131,7 @@ export const sendEmailHandler = async (
              </tr>
              </table>
        </div> `
-       }
+    }
 </body>
 <div style="text-align: center; margin-top: 20px; margin-bottom: 20px; background-color: #feb907; padding: 14px;">
           <img src="https://res.cloudinary.com/dgwsc8f0g/image/upload/v1739185483/features_lbnmr6.png" alt="features"
