@@ -5,6 +5,8 @@ import { CreatedRedirecturls, CreateGeneralInput } from './dto/create-general.in
 import { UpdateGeneralInput, UpdateRedirecturls } from './dto/update-general.input';
 import { Public } from '../decorators/public.decorator';
 
+
+
 @Resolver(() => Redirecturls)
 export class GeneralResolver {
   constructor(private readonly generalService: GeneralService) { }
@@ -50,7 +52,6 @@ export class GeneralResolver {
   updateGeneral(@Args("updateGeneralInput") updateGeneralInput: UpdateGeneralInput) {
     return this.generalService.update(updateGeneralInput);
   }
-
 
   @Mutation(() => General, { name: "Delete_Review", nullable: true })
   removeGeneral(@Args("id", { type: () => Int }) id: number) {
