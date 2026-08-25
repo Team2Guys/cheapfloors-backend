@@ -7,7 +7,7 @@ import { Public } from '../decorators/public.decorator';
 
 @Resolver(() => Redirecturls)
 export class GeneralResolver {
-  constructor(private readonly generalService: GeneralService) {}
+  constructor(private readonly generalService: GeneralService) { }
 
   @Mutation(() => Redirecturls, { nullable: true })
   createRedirecturls(
@@ -35,9 +35,7 @@ export class GeneralResolver {
     return this.generalService.findAllRedirecturls();
   }
 
-
-
-    @Mutation(() => General, { name: "Create_reviews", nullable: true })
+  @Mutation(() => General, { name: "Create_reviews", nullable: true })
   createGeneral(@Args("createGeneralInput") createGeneralInput: CreateGeneralInput) {
     return this.generalService.create(createGeneralInput);
   }
@@ -52,6 +50,7 @@ export class GeneralResolver {
   updateGeneral(@Args("updateGeneralInput") updateGeneralInput: UpdateGeneralInput) {
     return this.generalService.update(updateGeneralInput);
   }
+
 
   @Mutation(() => General, { name: "Delete_Review", nullable: true })
   removeGeneral(@Args("id", { type: () => Int }) id: number) {
