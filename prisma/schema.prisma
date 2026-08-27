@@ -315,3 +315,21 @@ model Reviews {
   updatedAt          DateTime?
   status             BlogStatus? @default(PUBLISHED)
 }
+
+
+model Blogs {
+  id               Int         @id @default(autoincrement())
+  title            String
+  content          String
+  category         String?
+  posterImageUrl   Json?
+  Images_Alt_Text  String?
+  Meta_Title       String?
+  Meta_Description String?
+  Canonical_Tag    String?
+  custom_url       String
+  last_editedBy    String?
+  createdAt        DateTime?   @default(now())
+  updatedAt        DateTime?   @default(now())
+  status           BlogStatus? @default(PUBLISHED)
+}
