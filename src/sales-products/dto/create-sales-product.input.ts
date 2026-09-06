@@ -149,6 +149,9 @@ export class PaymentQueryDto {
 
   @Field({ nullable: true })
   paymethod_sub_type?: string;
+
+  @Field({ nullable: true })
+  transactionId?: string;
 }
 
 @InputType()

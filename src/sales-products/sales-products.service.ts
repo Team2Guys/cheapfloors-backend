@@ -14,64 +14,50 @@ import {
 } from '../utils/helper';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { CCAvenueService } from './ccavenue.service';
 
 @Injectable()
 export class SalesProductsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private ccavenue: CCAvenueService,
+  ) { }
 
   async create(createSalesProductInput: CreateOrderInput) {
     try {
-      const { totalPrice, shipmentFee, products, ...billing_data } =
+      const { totalPrice, products, ...billing_data } =
         createSalesProductInput;
       const orderId = `ORD-${Date.now()}`;
-      var myHeaders = new Headers();
-      myHeaders.append(
-        'Authorization',
-        `Token ${process.env.PAYMOB_SECRET_KEY}`,
-      );
-      myHeaders.append('Content-Type', 'application/json');
+      const billingCity =
+        billing_data.city?.toLowerCase() === 'other'
+          ? billing_data.otherCity
+          : billing_data.city;
 
-      const totalAmount = [
-        { name: 'tax Fee', amount: Math.ceil(totalPrice * 100) },
-      ];
-
-      let raw = JSON.stringify({
-        amount: Math.ceil(totalPrice * 100),
-        currency: process.env.PAYMOD_CURRENCY,
-        payment_methods: [57660, 52375, 52374, 52172],
-        items: totalAmount,
-        billing_data: {
-          ...billing_data,
-          first_name: billing_data.firstName,
-          last_name: billing_data.lastName,
-          email: billing_data.email,
-          phone_number: billing_data.phone,
-        },
-        special_reference: orderId,
-        redirection_url: 'https://cheapfloors.ae/thank-you' as RequestRedirect,
+      const requestParams = this.ccavenue.buildRequestParams({
+        merchant_id: process.env.CCAVENUE_MERCHANT_ID,
+        order_id: orderId,
+        currency: 'AED',
+        amount: totalPrice.toFixed(2),
+        redirect_url: process.env.CCAVENUE_CALLBACK_URL,
+        cancel_url: process.env.CCAVENUE_CALLBACK_URL,
+        language: 'EN',
+        billing_name: `${billing_data.firstName} ${billing_data.lastName}`,
+        billing_address: billing_data.address,
+        billing_city: billingCity,
+        billing_state: billing_data.emirate,
+        billing_zip: '00000',
+        billing_country: billing_data.country,
+        billing_tel: billing_data.phone,
+        billing_email: billing_data.email,
+        merchant_param1: orderId,
       });
 
-      var requestOptions = {
-        method: 'POST',
-        headers: myHeaders,
-        body: raw,
-        redirect: 'follow' as RequestRedirect,
-      };
-
-      let response = await fetch(
-        'https://uae.paymob.com/v1/intention/',
-        requestOptions,
-      );
-
-      let result = await response.json();
-
-      if (!result.intention_order_id)
-        return customHttpException('Order Id not found ', 'NOT_FOUND');
+      const encRequest = this.ccavenue.encrypt(requestParams);
 
       await this.prisma.salesProducts.create({
         data: {
           ...createSalesProductInput,
-          orderId: String(result.intention_order_id),
+          orderId,
           checkout: true,
           currency: 'AED',
           isfreesample: createSalesProductInput.products.some(
@@ -81,7 +67,13 @@ export class SalesProductsService {
         },
       });
 
-      return { paymentKey: result };
+      return {
+        paymentKey: {
+          encRequest,
+          accessCode: process.env.CCAVENUE_ACCESS_CODE,
+          actionUrl: process.env.CCAVENUE_BASE_URL,
+        },
+      };
     } catch (error) {
       console.log(error, 'error');
       customHttpException(error.message, 'INTERNAL_SERVER_ERROR');
@@ -279,7 +271,7 @@ export class SalesProductsService {
 
       if (existingOrder.paymentStatus) {
         console.log(existingOrder.paymentStatus, 'existingOrder.paymentStatus');
-        customHttpException('Payment status already updated', 'BAD_REQUEST');
+        return existingOrder;
       }
 
       const paymentStatus = await this.prisma.salesProducts.update({
@@ -346,12 +338,6 @@ export class SalesProductsService {
         createSalesProductInput;
       const orderId = Date.now();
 
-      var myHeaders = new Headers();
-      myHeaders.append(
-        'Authorization',
-        `Token ${process.env.PAYMOB_SECRET_KEY}`,
-      );
-      myHeaders.append('Content-Type', 'application/json');
       let existingOrder = await this.prisma.salesProducts.create({
         data: {
           ...createSalesProductInput,
