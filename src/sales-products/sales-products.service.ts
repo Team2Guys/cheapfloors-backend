@@ -258,7 +258,7 @@ export class SalesProductsService {
 
   async postpaymentStatus(postpayment: PaymentQueryDto) {
     try {
-      const { orderId } = postpayment;
+      const { orderId, amount, ...paymentFields } = postpayment;
 
       let existingOrder = await this.prisma.salesProducts.findFirst({
         where: { orderId },
@@ -274,10 +274,22 @@ export class SalesProductsService {
         return existingOrder;
       }
 
+      if (amount !== undefined) {
+        const paidAmount = parseFloat(amount);
+        if (
+          !Number.isNaN(paidAmount) &&
+          Math.round(paidAmount) !== Math.round(existingOrder.totalPrice)
+        ) {
+          console.warn(
+            `Payment amount mismatch for order ${orderId}: expected ${existingOrder.totalPrice}, gateway reported ${paidAmount}`,
+          );
+        }
+      }
+
       const paymentStatus = await this.prisma.salesProducts.update({
         where: { orderId },
         data: {
-          ...postpayment,
+          ...paymentFields,
           checkout: false,
           paymentStatus: true,
           transactionDate: new Date(),

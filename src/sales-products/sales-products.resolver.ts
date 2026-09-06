@@ -35,13 +35,18 @@ export class SalesProductsResolver {
     return this.salesProductsService.freeSample(createFreesample);
   }
 
+  // NOTE: this is intentionally read-only. It must never let a client mark an
+  // order as paid — that can only happen via the CCAvenue callback controller,
+  // which is the only party able to produce a validly-encrypted response.
+  // This mutation just re-reads whatever state that callback already wrote,
+  // so the thank-you page can render it.
   @Public()
   @Mutation(() => paymentStatus, { nullable: true })
   postpaymentStatus(
     @Args('postpaymentStatus') updatepaymentstatusInput: PaymentQueryDto,
   ) {
-    return this.salesProductsService.postpaymentStatus(
-      updatepaymentstatusInput,
+    return this.salesProductsService.findOne(
+      updatepaymentstatusInput.orderId ?? '',
     );
   }
 

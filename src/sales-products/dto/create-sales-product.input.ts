@@ -152,6 +152,9 @@ export class PaymentQueryDto {
 
   @Field({ nullable: true })
   transactionId?: string;
+
+  @Field({ nullable: true })
+  amount?: string;
 }
 
 @InputType()

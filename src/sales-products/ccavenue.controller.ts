@@ -40,6 +40,7 @@ export class CCAvenueController {
           transactionId: params.tracking_id,
           pay_methodType: params.payment_mode,
           paymethod_sub_type: params.card_name,
+          amount: params.amount,
         });
       } catch (error) {
         console.log(error, 'ccavenue postpaymentStatus error');
