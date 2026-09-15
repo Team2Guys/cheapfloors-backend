@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
 
-const IV = Buffer.from([1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 0, 0, 0, 0, 0, 0]);
+// CCAvenue's documented fixed IV: bytes 0x00 through 0x0f, in order. Confirmed
+// against CCAvenue's own crypto.php sample (initVector = pack("C*", 0x00..0x0f)).
+const IV = Buffer.from([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
 
 @Injectable()
 export class CCAvenueService {
