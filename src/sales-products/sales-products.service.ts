@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   contactUsEmailInput,
   CreateOrderInput,
@@ -18,6 +18,8 @@ import { CCAvenueService } from './ccavenue.service';
 
 @Injectable()
 export class SalesProductsService {
+  private readonly logger = new Logger(SalesProductsService.name);
+
   constructor(
     private prisma: PrismaService,
     private ccavenue: CCAvenueService,
@@ -53,6 +55,18 @@ export class SalesProductsService {
       });
 
       const encRequest = this.ccavenue.encrypt(requestParams);
+
+      // TEMP DIAGNOSTIC (remove once the CCAvenue "junk merchant_id" issue is
+      // resolved): CCAvenue support reported decrypting our request and
+      // getting garbage for the first ~16 bytes (merchant_id) while every
+      // field after that decrypts perfectly. That pattern means the AES key
+      // is correct but something is corrupting exactly the first block
+      // between here and CCAvenue's server. Logging the raw values lets us
+      // byte-compare against whatever CCAvenue says they actually received.
+      this.logger.log(`[ccavenue] order ${orderId} plaintext: ${requestParams}`);
+      this.logger.log(
+        `[ccavenue] order ${orderId} encRequest: ${encRequest} length: ${encRequest.length}`,
+      );
 
       await this.prisma.salesProducts.create({
         data: {
