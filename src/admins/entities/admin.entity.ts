@@ -55,7 +55,39 @@ export class Admin {
   canVeiwTotalproducts: boolean;
 
   @Field(() => Boolean, { defaultValue: false })
-  canVeiwTotalCategories: boolean;
+  canVeiwTotalCategories: boolean;
+
+  @Field(() => Boolean, { defaultValue: false })
+
+  canViewAccessories: boolean;
+
+  @Field(() => Boolean, { defaultValue: false })
+
+  canViewOrders: boolean;
+
+  @Field(() => Boolean, { defaultValue: false })
+
+  canViewFreeSampleOrders: boolean;
+
+  @Field(() => Boolean, { defaultValue: false })
+
+  canViewAbandonedOrders: boolean;
+
+  @Field(() => Boolean, { defaultValue: false })
+
+  canViewMeasurementAppointments: boolean;
+
+  @Field(() => Boolean, { defaultValue: false })
+
+  canViewInstallationAppointments: boolean;
+
+  @Field(() => Boolean, { defaultValue: false })
+
+  canViewBlogs: boolean;
+
+  @Field(() => Boolean, { defaultValue: false })
+
+  canViewRedirectUrls: boolean;
 
   @Field(() => GraphQLJSON, { nullable: true })
   posterImageUrl: any;

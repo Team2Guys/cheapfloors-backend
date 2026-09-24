@@ -138,6 +138,15 @@ model Admins {
   canVeiwAdmins          Boolean     @default(false)
   canVeiwTotalproducts   Boolean     @default(false)
   canVeiwTotalCategories Boolean     @default(false)
+  // Dashboard page access (one per page in the sidebar).
+  canViewAccessories               Boolean @default(false)
+  canViewOrders                    Boolean @default(false)
+  canViewFreeSampleOrders          Boolean @default(false)
+  canViewAbandonedOrders           Boolean @default(false)
+  canViewMeasurementAppointments   Boolean @default(false)
+  canViewInstallationAppointments  Boolean @default(false)
+  canViewBlogs                     Boolean @default(false)
+  canViewRedirectUrls              Boolean @default(false)
   posterImageUrl         Json?
   role                   String      @default("Admin")
   status                 BlogStatus? @default(PUBLISHED)
