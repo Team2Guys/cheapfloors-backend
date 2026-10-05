@@ -42,6 +42,7 @@ model Category {
   recalledSubCats    subCategories[] @relation("RecallCategories")
   price              String?
   status             BlogStatus?     @default(PUBLISHED)
+  Schema_Json        String?
 }
 
 model Products {
@@ -82,6 +83,7 @@ model Products {
   sku String?
   status                BlogStatus?    @default(PUBLISHED)
   stockUpdateDate     DateTime?
+  Schema_Json           String?
 }
 
 model subCategories {
@@ -117,6 +119,7 @@ model subCategories {
   whatAmiMeta_Description String?
   whatAmiMeta_Title       String?
   status                  BlogStatus? @default(PUBLISHED)
+  Schema_Json             String?
 }
 
 model Admins {
@@ -182,6 +185,7 @@ model Acessories {
   lengthPrice           String?
     sku String?
   status                BlogStatus? @default(PUBLISHED)
+  Schema_Json           String?
 }
 
 enum AppointsType {

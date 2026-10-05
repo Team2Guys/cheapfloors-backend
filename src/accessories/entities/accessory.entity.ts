@@ -86,4 +86,7 @@ export class Accessory {
 
   @Field(() => String, { nullable: true })
   sku?: string;
+
+  @Field(() => String, { nullable: true })
+  Schema_Json?: string;
 }
