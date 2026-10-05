@@ -93,4 +93,7 @@ export class SubCategory {
 
   @Field(() => BlogStatus, { nullable: true })
   status?: BlogStatus;
+
+  @Field(() => String, { nullable: true })
+  Schema_Json?: string;
 }

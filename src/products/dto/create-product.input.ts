@@ -1,6 +1,7 @@
 import { InputType, Int, Field, ID } from '@nestjs/graphql';
 import { BlogStatus } from '../../general/dto/enums/enum';
 import { GraphQLJSON } from 'graphql-type-json';
+import { SchemaJSON } from '../../utils/schema-json.scalar';
 
 @InputType()
 export class CreateProductInput {
@@ -102,4 +103,7 @@ export class CreateProductInput {
 
   @Field(() => String, { nullable: true })
   sku?: string;
+
+  @Field(() => SchemaJSON, { nullable: true })
+  Schema_Json?: string | null;
 }

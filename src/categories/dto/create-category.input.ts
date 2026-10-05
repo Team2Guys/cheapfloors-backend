@@ -1,6 +1,7 @@
 import { InputType, Int, Field, ID } from '@nestjs/graphql';
 import { BlogStatus } from '../../general/dto/enums/enum';
 import GraphQLJSON from 'graphql-type-json';
+import { SchemaJSON } from '../../utils/schema-json.scalar';
 import { CreateProductInput } from '../../products/dto/create-product.input';
 import { CreateSubCategoryInput } from '../../sub_categories/dto/create-sub_category.input';
 
@@ -55,4 +56,7 @@ export class CreateCategoryInput {
 
   @Field(() => BlogStatus, { nullable: true })
   status?: BlogStatus;
+
+  @Field(() => SchemaJSON, { nullable: true })
+  Schema_Json?: string | null;
 }
