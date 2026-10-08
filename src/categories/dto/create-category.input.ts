@@ -59,4 +59,8 @@ export class CreateCategoryInput {
 
   @Field(() => SchemaJSON, { nullable: true })
   Schema_Json?: string | null;
+
+  // Category page FAQ section: [{ id, question, answer }]
+  @Field(() => [GraphQLJSON], { nullable: true })
+  FAQS?: any[];
 }

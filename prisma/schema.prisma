@@ -43,6 +43,7 @@ model Category {
   price              String?
   status             BlogStatus?     @default(PUBLISHED)
   Schema_Json        String?
+  FAQS               Json[]          @default([])
 }
 
 model Products {
@@ -120,6 +121,7 @@ model subCategories {
   whatAmiMeta_Title       String?
   status                  BlogStatus? @default(PUBLISHED)
   Schema_Json             String?
+  FAQS                    Json[]      @default([])
 }
 
 model Admins {

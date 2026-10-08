@@ -75,4 +75,7 @@ export class Category {
 
   @Field(() => String, { nullable: true })
   Schema_Json?: string;
+
+  @Field(() => [GraphQLJSON], { nullable: true })
+  FAQS?: any[];
 }

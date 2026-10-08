@@ -96,4 +96,7 @@ export class SubCategory {
 
   @Field(() => String, { nullable: true })
   Schema_Json?: string;
+
+  @Field(() => [GraphQLJSON], { nullable: true })
+  FAQS?: any[];
 }
