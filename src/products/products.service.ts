@@ -23,6 +23,7 @@ export class ProductsService {
       const product = await this.prisma.products.create({
         data: {
           ...updateData,
+          stock: Math.max(0, updateData.stock), // stock never goes below zero
           ...(category !== undefined
             ? { category: { connect: { id: +category } } }
             : category
@@ -114,6 +115,10 @@ export class ProductsService {
         where: { id },
         data: {
           ...updateData,
+          // stock never goes below zero
+          ...(updateData.stock != null && {
+            stock: Math.max(0, updateData.stock),
+          }),
           updatedAt,
           ...(category !== undefined
             ? { category: { connect: { id: +category } } }

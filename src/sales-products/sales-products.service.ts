@@ -331,6 +331,11 @@ export class SalesProductsService {
               },
             },
           });
+          // Stock never goes below zero, even if an order exceeds what's left
+          await this.prisma[accessoryFlag].updateMany({
+            where: { id: prod.id, stock: { lt: 0 } },
+            data: { stock: 0 },
+          });
         }
       }
 
