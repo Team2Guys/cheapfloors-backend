@@ -1,4 +1,4 @@
-import { InputType, Int, Field, ID } from '@nestjs/graphql';
+import { InputType, Int, Field, ID, Float } from '@nestjs/graphql';
 import { BlogStatus } from '../../general/dto/enums/enum';
 import { GraphQLJSON } from 'graphql-type-json';
 import { SchemaJSON } from '../../utils/schema-json.scalar';
@@ -17,7 +17,7 @@ export class CreateProductInput {
   @Field()
   description: string;
 
-  @Field(() => Int)
+  @Field(() => Float, { description: 'available stock in SQM' })
   stock: number;
 
   @Field(() => GraphQLJSON)

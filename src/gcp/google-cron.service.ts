@@ -20,14 +20,22 @@ export class GoogleCronService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, { timeZone: 'Asia/Dubai' })
   async StokCrone() {
-    this.logger.log('Running cron job to sync products...');
+    this.logger.log('Running cron job to sync stock from Google Sheet...');
     try {
-      await this.googleMerchantService.UpdateStock();
-      this.logger.log('Product sync successful');
+      const result = await this.googleMerchantService.UpdateStock();
+      this.logger.log(
+        `Stock sync successful: ${result.products} products, ${result.accessories} accessories updated` +
+          (result.notFound.length
+            ? `; SKUs not found: ${result.notFound.join(', ')}`
+            : '') +
+          (result.conflicting.length
+            ? `; SKUs skipped (listed twice with different stock): ${result.conflicting.join(', ')}`
+            : ''),
+      );
     } catch (err) {
-      this.logger.error('Product sync failed', err);
+      this.logger.error('Stock sync failed', err);
     }
   }
 }

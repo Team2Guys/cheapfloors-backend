@@ -18,6 +18,7 @@ export class AccessoriesService {
       return await this.prisma.acessories.create({
         data: {
           ...updateData,
+          stock: Math.max(0, updateData.stock), // stock never goes below zero
           ...(category !== undefined
             ? { category: { connect: { id: +category } } }
             : {}),
@@ -67,6 +68,10 @@ export class AccessoriesService {
         where: { id },
         data: {
           ...updateData,
+          // stock never goes below zero
+          ...(updateData.stock != null && {
+            stock: Math.max(0, updateData.stock),
+          }),
           ...(category !== undefined
             ? { category: { connect: { id: +category } } }
             : category

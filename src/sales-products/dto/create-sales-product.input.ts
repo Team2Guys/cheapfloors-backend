@@ -82,7 +82,7 @@ export class ProductInput {
   @Field(() => Float)
   price: number;
 
-  @Field(() => Int)
+  @Field(() => Float)
   stock: number;
 
   @Field()

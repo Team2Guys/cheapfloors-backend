@@ -13,8 +13,9 @@ export class GoogleMerchantService {
     private prisma: PrismaService,
   ) { }
 
-  private readonly PRODUCT_URL =
-    'https://rfrichmond.com/available-products.json';
+  // Stock sheet must stay shared as "Anyone with the link can view" for the CSV export to work
+  private readonly STOCK_SHEET_URL =
+    'https://docs.google.com/spreadsheets/d/1F5ztqf3veFWc5TUJRbAy605TOqOah4n5qXOZJxOXWeA/export?format=csv';
 
   async uploadProducts(merchantId: string) {
     const authClient = await this.authService.setStoredCredentials();
@@ -69,57 +70,159 @@ export class GoogleMerchantService {
 
   async UpdateStock() {
     try {
-      const response = await fetch(this.PRODUCT_URL, {
-        headers: {
-          Accept: 'application/json, text/plain, */*',
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36',
-        },
-      });
+      const response = await fetch(this.STOCK_SHEET_URL);
+      const contentType = response.headers.get('content-type') ?? '';
 
-      const text = await response.text();
-      const jsonPart = text.split(/\r?\n\r?\n/).pop(); // remove HTTP headers
-      const data = JSON.parse(jsonPart!);
-      let updatedAt = new Date();
+      // A private sheet redirects to Google's HTML sign-in page instead of CSV
+      if (!response.ok || !contentType.includes('text/csv'))
+        throw new Error(
+          `Stock sheet not readable (HTTP ${response.status}, ${contentType})`,
+        );
 
-      if (!(data?.Products?.length > 0))
-        return customHttpException('Products not found');
+      const rows = this.parseCsv(await response.text());
+      const header = (rows[0] ?? []).map((h) => h.trim().toLowerCase());
+      const skuCol = header.indexOf('sku');
+      // "Total SQM" - flooring stock is stored in SQM
+      const sqmCol = header.findIndex(
+        (h) => h.includes('total') && h.includes('sqm'),
+      );
+      // "Physical Box available in stock" - pieces for accessories, and a
+      // fallback (boxes x per-box SQM) when the total column is blank
+      const boxCol = header.findIndex(
+        (h) => h.includes('box') && h.includes('stock'),
+      );
+      // "Per Box SQM" - carton coverage, used to fill in a missing boxCoverage
+      const perBoxCol = header.findIndex(
+        (h) => h.includes('per box') && h.includes('sqm'),
+      );
 
-      for (const item of data.Products) {
-        const sku = item.SKU?.trim();
-        const stock = Number(item.AvailableStock ?? 0);
+      if (skuCol === -1 || (sqmCol === -1 && boxCol === -1))
+        throw new Error('Stock sheet is missing the SKU or stock columns');
 
-        if (!sku) continue;
+      const updatedAt = new Date();
+      const result = {
+        products: 0,
+        accessories: 0,
+        notFound: [] as string[],
+        invalid: [] as string[],
+        conflicting: [] as string[],
+      };
 
-        // First try to find in products
-        const product = await this.prisma.products.findFirst({
-          where: { sku },
-        });
-        let updatedAt = new Date();
+      type SheetStock = { sqm: number; pieces: number; perBoxSqm: number | null };
+      const stockBySku = new Map<string, SheetStock>();
+      for (const row of rows.slice(1)) {
+        const sku = row[skuCol]?.trim();
+        if (!sku) continue; // spacer and "TOTAL ..." rows
 
-        if (product) {
-          await this.prisma.products.updateMany({
-            where: { sku },
-            data: { stock, stockUpdateDate: updatedAt },
-          });
+        const boxes = this.parseNumber(row[boxCol]);
+        const perBoxSqm = this.parseNumber(row[perBoxCol]);
+        let sqm = this.parseNumber(row[sqmCol]);
+        if (sqm === null && boxes !== null && perBoxSqm !== null)
+          sqm = boxes * perBoxSqm;
+
+        if (
+          Number.isNaN(boxes) ||
+          Number.isNaN(perBoxSqm) ||
+          Number.isNaN(sqm)
+        ) {
+          result.invalid.push(sku);
           continue;
         }
 
-        const accessory = await this.prisma.acessories.findFirst({
-          where: { sku },
-        });
+        // Stock never goes below zero; SQM is kept at two decimals
+        const entry: SheetStock = {
+          sqm: Math.max(0, Math.round((sqm ?? 0) * 100) / 100),
+          pieces: Math.max(0, Math.trunc(boxes ?? 0)),
+          perBoxSqm: perBoxSqm !== null && perBoxSqm > 0 ? perBoxSqm : null,
+        };
 
-        if (accessory) {
-          await this.prisma.acessories.updateMany({
-            where: { sku },
-            data: { stock },
-          });
+        // Same SKU listed twice with different stock is ambiguous - skip it rather than guess
+        const existing = stockBySku.get(sku);
+        if (
+          existing &&
+          (existing.sqm !== entry.sqm || existing.pieces !== entry.pieces)
+        ) {
+          if (!result.conflicting.includes(sku)) result.conflicting.push(sku);
           continue;
         }
+        stockBySku.set(sku, entry);
       }
-      return data.Products;
+      for (const sku of result.conflicting) stockBySku.delete(sku);
+
+      for (const [sku, { sqm, pieces, perBoxSqm }] of stockBySku) {
+        // First try products (stock in SQM), then fall back to accessories (pieces)
+        const product = await this.prisma.products.updateMany({
+          where: { sku },
+          data: { stock: sqm, stockUpdateDate: updatedAt },
+        });
+
+        if (product.count > 0) {
+          result.products += product.count;
+          // SQM-per-carton is no longer entered on the dashboard, so fill it in
+          // from the sheet when a product has none. Existing values are kept.
+          if (perBoxSqm !== null)
+            await this.prisma.products.updateMany({
+              where: { sku, OR: [{ boxCoverage: null }, { boxCoverage: '' }] },
+              data: { boxCoverage: String(perBoxSqm) },
+            });
+          continue;
+        }
+
+        const accessory = await this.prisma.acessories.updateMany({
+          where: { sku },
+          data: { stock: pieces },
+        });
+
+        if (accessory.count > 0) result.accessories += accessory.count;
+        else result.notFound.push(sku);
+      }
+
+      return result;
     } catch (error) {
+      console.error('Error updating stock:', error.message);
       throw customHttpException('Failed to update stock');
     }
+  }
+
+  // A blank cell (or a missing column) is null; anything non-numeric is NaN
+  private parseNumber(cell: string | undefined): number | null {
+    const raw = (cell ?? '').trim().replace(/,/g, '');
+    return raw === '' ? null : Number(raw);
+  }
+
+  // Minimal RFC 4180 parser: handles quoted fields containing commas, quotes and newlines
+  private parseCsv(text: string): string[][] {
+    const rows: string[][] = [];
+    let row: string[] = [];
+    let field = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+
+      if (inQuotes) {
+        if (ch === '"' && text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else if (ch === '"') inQuotes = false;
+        else field += ch;
+      } else if (ch === '"') inQuotes = true;
+      else if (ch === ',') {
+        row.push(field);
+        field = '';
+      } else if (ch === '\n') {
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = '';
+      } else if (ch !== '\r') field += ch;
+    }
+
+    if (field || row.length) {
+      row.push(field);
+      rows.push(row);
+    }
+
+    return rows;
   }
 }

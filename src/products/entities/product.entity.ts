@@ -1,4 +1,4 @@
-import { Int, Field, ObjectType, ID } from '@nestjs/graphql';
+import { Int, Field, ObjectType, ID, Float } from '@nestjs/graphql';
 import { Category } from '../../categories/entities/category.entity';
 import { GraphQLJSON } from 'graphql-type-json';
 import { SubCategory } from '../../sub_categories/entities/sub_category.entity';
@@ -22,7 +22,7 @@ export class Product {
   @Field()
   description: string;
 
-  @Field(() => Int)
+  @Field(() => Float, { description: 'available stock in SQM' })
   stock: number;
 
   @Field(() => GraphQLJSON)
