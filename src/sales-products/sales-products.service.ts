@@ -317,25 +317,38 @@ export class SalesProductsService {
         !products.some((item) => item.isfreeSample)
       ) {
         for (const prod of products) {
-          let category = prod.category?.trim()?.toLowerCase();
-          let accessoryFlag =
-            category == 'accessories' || category == 'accessory'
-              ? 'acessories'
-              : 'products';
-          console.log(accessoryFlag, 'flag');
-          await this.prisma[accessoryFlag].update({
+          const category = prod.category?.trim()?.toLowerCase();
+          const isAccessory =
+            category == 'accessories' || category == 'accessory';
+
+          if (isAccessory) {
+            // Accessories are stocked in whole pieces
+            const pieces = Math.max(
+              0,
+              Math.round(Number(prod.requiredBoxes) || 0),
+            );
+            await this.prisma.acessories.update({
+              where: { id: prod.id },
+              data: { stock: { decrement: pieces } },
+            });
+            // Stock never goes below zero, even if an order exceeds what's left
+            await this.prisma.acessories.updateMany({
+              where: { id: prod.id, stock: { lt: 0 } },
+              data: { stock: 0 },
+            });
+            continue;
+          }
+
+          // Flooring products are stocked in SQM, so deduct the ordered area
+          const sqm = Math.max(0, Number(prod.squareMeter) || 0);
+          await this.prisma.products.update({
             where: { id: prod.id },
-            data: {
-              stock: {
-                decrement: prod.requiredBoxes,
-              },
-            },
+            data: { stock: { decrement: sqm } },
           });
-          // Stock never goes below zero, even if an order exceeds what's left
-          await this.prisma[accessoryFlag].updateMany({
-            where: { id: prod.id, stock: { lt: 0 } },
-            data: { stock: 0 },
-          });
+          // Stock never goes below zero, even if an order exceeds what's left,
+          // and is kept at two decimals so float residue can't leave a product
+          // showing "in stock" with 0.00 SQM.
+          await this.prisma.$executeRaw`UPDATE "Products" SET "stock" = ROUND(GREATEST("stock", 0)::numeric, 2) WHERE "id" = ${Number(prod.id)}`;
         }
       }
 

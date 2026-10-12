@@ -6,6 +6,11 @@ import { customHttpException } from '../utils/helper';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { cache } from '../utils/redis'; // import the Redis/fallback cache
 
+// Product stock is tracked in SQM, so it may be fractional: keep it at two
+// decimals and never below zero.
+const normalizeStockSqm = (stock: number) =>
+  Math.max(0, Math.round(Number(stock) * 100) / 100);
+
 @Injectable()
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
@@ -23,7 +28,7 @@ export class ProductsService {
       const product = await this.prisma.products.create({
         data: {
           ...updateData,
-          stock: Math.max(0, updateData.stock), // stock never goes below zero
+          stock: normalizeStockSqm(updateData.stock),
           ...(category !== undefined
             ? { category: { connect: { id: +category } } }
             : category
@@ -115,9 +120,8 @@ export class ProductsService {
         where: { id },
         data: {
           ...updateData,
-          // stock never goes below zero
           ...(updateData.stock != null && {
-            stock: Math.max(0, updateData.stock),
+            stock: normalizeStockSqm(updateData.stock),
           }),
           updatedAt,
           ...(category !== undefined

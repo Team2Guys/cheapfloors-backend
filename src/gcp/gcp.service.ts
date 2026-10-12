@@ -82,13 +82,22 @@ export class GoogleMerchantService {
       const rows = this.parseCsv(await response.text());
       const header = (rows[0] ?? []).map((h) => h.trim().toLowerCase());
       const skuCol = header.indexOf('sku');
-      // "Physical Box available in stock" - stock is stored in boxes, not SQM
-      const stockCol = header.findIndex(
+      // "Total SQM" - flooring stock is stored in SQM
+      const sqmCol = header.findIndex(
+        (h) => h.includes('total') && h.includes('sqm'),
+      );
+      // "Physical Box available in stock" - pieces for accessories, and a
+      // fallback (boxes x per-box SQM) when the total column is blank
+      const boxCol = header.findIndex(
         (h) => h.includes('box') && h.includes('stock'),
       );
+      // "Per Box SQM" - carton coverage, used to fill in a missing boxCoverage
+      const perBoxCol = header.findIndex(
+        (h) => h.includes('per box') && h.includes('sqm'),
+      );
 
-      if (skuCol === -1 || stockCol === -1)
-        throw new Error('Stock sheet is missing the SKU or box stock column');
+      if (skuCol === -1 || (sqmCol === -1 && boxCol === -1))
+        throw new Error('Stock sheet is missing the SKU or stock columns');
 
       const updatedAt = new Date();
       const result = {
@@ -99,45 +108,69 @@ export class GoogleMerchantService {
         conflicting: [] as string[],
       };
 
-      const stockBySku = new Map<string, number>();
+      type SheetStock = { sqm: number; pieces: number; perBoxSqm: number | null };
+      const stockBySku = new Map<string, SheetStock>();
       for (const row of rows.slice(1)) {
         const sku = row[skuCol]?.trim();
         if (!sku) continue; // spacer and "TOTAL ..." rows
 
-        const rawStock = (row[stockCol] ?? '').trim().replace(/,/g, '');
-        // Stock never goes below zero
-        const stock =
-          rawStock === '' ? 0 : Math.max(0, Math.trunc(Number(rawStock)));
+        const boxes = this.parseNumber(row[boxCol]);
+        const perBoxSqm = this.parseNumber(row[perBoxCol]);
+        let sqm = this.parseNumber(row[sqmCol]);
+        if (sqm === null && boxes !== null && perBoxSqm !== null)
+          sqm = boxes * perBoxSqm;
 
-        if (Number.isNaN(stock)) {
+        if (
+          Number.isNaN(boxes) ||
+          Number.isNaN(perBoxSqm) ||
+          Number.isNaN(sqm)
+        ) {
           result.invalid.push(sku);
           continue;
         }
 
+        // Stock never goes below zero; SQM is kept at two decimals
+        const entry: SheetStock = {
+          sqm: Math.max(0, Math.round((sqm ?? 0) * 100) / 100),
+          pieces: Math.max(0, Math.trunc(boxes ?? 0)),
+          perBoxSqm: perBoxSqm !== null && perBoxSqm > 0 ? perBoxSqm : null,
+        };
+
         // Same SKU listed twice with different stock is ambiguous - skip it rather than guess
-        if (stockBySku.has(sku) && stockBySku.get(sku) !== stock) {
+        const existing = stockBySku.get(sku);
+        if (
+          existing &&
+          (existing.sqm !== entry.sqm || existing.pieces !== entry.pieces)
+        ) {
           if (!result.conflicting.includes(sku)) result.conflicting.push(sku);
           continue;
         }
-        stockBySku.set(sku, stock);
+        stockBySku.set(sku, entry);
       }
       for (const sku of result.conflicting) stockBySku.delete(sku);
 
-      for (const [sku, stock] of stockBySku) {
-        // First try products, then fall back to accessories
+      for (const [sku, { sqm, pieces, perBoxSqm }] of stockBySku) {
+        // First try products (stock in SQM), then fall back to accessories (pieces)
         const product = await this.prisma.products.updateMany({
           where: { sku },
-          data: { stock, stockUpdateDate: updatedAt },
+          data: { stock: sqm, stockUpdateDate: updatedAt },
         });
 
         if (product.count > 0) {
           result.products += product.count;
+          // SQM-per-carton is no longer entered on the dashboard, so fill it in
+          // from the sheet when a product has none. Existing values are kept.
+          if (perBoxSqm !== null)
+            await this.prisma.products.updateMany({
+              where: { sku, OR: [{ boxCoverage: null }, { boxCoverage: '' }] },
+              data: { boxCoverage: String(perBoxSqm) },
+            });
           continue;
         }
 
         const accessory = await this.prisma.acessories.updateMany({
           where: { sku },
-          data: { stock },
+          data: { stock: pieces },
         });
 
         if (accessory.count > 0) result.accessories += accessory.count;
@@ -149,6 +182,12 @@ export class GoogleMerchantService {
       console.error('Error updating stock:', error.message);
       throw customHttpException('Failed to update stock');
     }
+  }
+
+  // A blank cell (or a missing column) is null; anything non-numeric is NaN
+  private parseNumber(cell: string | undefined): number | null {
+    const raw = (cell ?? '').trim().replace(/,/g, '');
+    return raw === '' ? null : Number(raw);
   }
 
   // Minimal RFC 4180 parser: handles quoted fields containing commas, quotes and newlines

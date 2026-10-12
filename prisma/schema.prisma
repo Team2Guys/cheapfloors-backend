@@ -51,7 +51,8 @@ model Products {
   name                  String
   price                 Int
   description           String
-  stock                 Int
+  // Available stock in SQM (accessories keep whole pieces in their own model)
+  stock                 Float
   discountPrice         Int?
   posterImageUrl        Json
   hoverImageUrl         Json?
