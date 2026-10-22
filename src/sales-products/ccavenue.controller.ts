@@ -14,7 +14,7 @@ export class CCAvenueController {
   @Public()
   @Post('callback')
   async callback(@Body('encResp') encResp: string, @Res() res: Response) {
-    const clientBaseUrl = process.env.CLIENT_URL_1 || 'https://cheapfloors.ae';
+    const clientBaseUrl = process.env.CLIENT_URL_3 || 'https://cheapfloors.ae';
 
     if (!encResp) {
       return res.redirect(302, `${clientBaseUrl}/thank-you?success=false`);

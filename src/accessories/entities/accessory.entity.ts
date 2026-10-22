@@ -66,6 +66,10 @@ export class Accessory {
   @Field(() => [Product], { nullable: true })
   products?: Product[];
 
+  // Published products sharing a colour code with this accessory's swatches.
+  @Field(() => [Product], { nullable: true })
+  matchingProducts?: Product[];
+
   @Field(() => [GraphQLJSON])
   featureImages: any[];
 
