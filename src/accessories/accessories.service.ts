@@ -45,8 +45,31 @@ export class AccessoriesService {
 
   async findAll() {
     try {
-      return await this.prisma.acessories.findMany({
-        include: { category: true, products: true },
+      const [accessories, products] = await Promise.all([
+        this.prisma.acessories.findMany({
+          include: { category: true, products: true },
+        }),
+        this.prisma.products.findMany({
+          where: { status: 'PUBLISHED' },
+          select: { id: true, name: true, colors: true },
+        }),
+      ]);
+
+      // "Matching with" is driven by colour code, so new products show up
+      // without being manually linked to each accessory.
+      const colorCodes = (colors: any[] = []) =>
+        colors
+          .map((c) => (c?.detail ?? c?.color)?.toString().trim())
+          .filter(Boolean);
+
+      return accessories.map((accessory) => {
+        const accessoryColors = new Set(colorCodes(accessory.featureImages));
+        return {
+          ...accessory,
+          matchingProducts: products.filter((product) =>
+            colorCodes(product.colors).some((code) => accessoryColors.has(code)),
+          ),
+        };
       });
     } catch (error) {
       customHttpException(error, 'INTERNAL_SERVER_ERROR');
