@@ -4,6 +4,7 @@ import { UpdateProductInput } from './dto/update-product.input';
 import { PrismaService } from '../prisma/prisma.service';
 import { customHttpException } from '../utils/helper';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { Acessories } from '@prisma/client';
 import { cache } from '../utils/redis'; // import the Redis/fallback cache
 
 // Product stock is tracked in SQM, so it may be fractional: keep it at two
@@ -97,12 +98,45 @@ export class ProductsService {
         include: { category: true, subcategory: true, acessories: flag },
       });
 
+      if (product && flag) {
+        product.acessories = await this.withColorMatchedAccessories(product);
+      }
+
       if (product) await cache.set(cacheKey, product, 60);
 
       return product;
     } catch (error) {
       customHttpException(error, 'INTERNAL_SERVER_ERROR');
     }
+  }
+
+  // Linked accessories plus any accessory with a swatch in the product's
+  // colour code, so new products get accessories without manual linking.
+  private async withColorMatchedAccessories(product: {
+    colors: any[];
+    productImages: any[];
+    acessories: Acessories[];
+  }): Promise<Acessories[]> {
+    const productColors = new Set(
+      [
+        ...(product.colors ?? []).map((c) => c?.detail),
+        ...(product.productImages ?? []).map((img) => img?.colorCode),
+      ]
+        .map((code) => code?.toString().trim())
+        .filter(Boolean),
+    );
+    if (productColors.size === 0) return product.acessories;
+
+    const linkedIds = new Set(product.acessories.map((a) => a.id));
+    const accessories = await this.prisma.acessories.findMany({
+      where: { id: { notIn: [...linkedIds] } },
+    });
+    const matched = accessories.filter((accessory) =>
+      (accessory.featureImages as any[]).some((img: any) =>
+        productColors.has(img?.color?.toString().trim()),
+      ),
+    );
+    return [...product.acessories, ...matched];
   }
 
   async update(id: number, updateProductInput: UpdateProductInput) {
