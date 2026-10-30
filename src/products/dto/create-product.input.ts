@@ -106,4 +106,8 @@ export class CreateProductInput {
 
   @Field(() => SchemaJSON, { nullable: true })
   Schema_Json?: string | null;
+
+  // H2 above the product description; the product name is used when empty.
+  @Field({ nullable: true })
+  Description_Heading?: string;
 }

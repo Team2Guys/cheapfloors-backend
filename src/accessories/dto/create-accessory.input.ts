@@ -81,4 +81,8 @@ export class CreateAccessoryInput {
 
   @Field(() => SchemaJSON, { nullable: true })
   Schema_Json?: string | null;
+
+  // H2 above the accessory description; the accessory name is used when empty.
+  @Field({ nullable: true })
+  Description_Heading?: string;
 }

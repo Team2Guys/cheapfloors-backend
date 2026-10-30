@@ -113,4 +113,7 @@ export class Product {
 
   @Field(() => String, { nullable: true })
   Schema_Json?: string;
+
+  @Field(() => String, { nullable: true })
+  Description_Heading?: string;
 }
