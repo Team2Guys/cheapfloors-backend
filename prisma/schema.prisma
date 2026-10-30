@@ -86,6 +86,7 @@ model Products {
   status                BlogStatus?    @default(PUBLISHED)
   stockUpdateDate     DateTime?
   Schema_Json           String?
+  Description_Heading   String?
 }
 
 model subCategories {
@@ -189,6 +190,7 @@ model Acessories {
     sku String?
   status                BlogStatus? @default(PUBLISHED)
   Schema_Json           String?
+  Description_Heading   String?
 }
 
 enum AppointsType {
