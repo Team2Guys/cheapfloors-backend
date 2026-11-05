@@ -90,8 +90,11 @@ export class Products {
   @Field(() => Float)
   price: number;
 
-  @Field(() => Int)
-  stock: number;
+  // Snapshot of catalog stock, which is SQM and fractional (e.g. 54.9) since
+  // the stock-as-SQM change — Int here made every AllOrders query fail.
+  // Nullable so one snapshot without the field can't blank the whole list.
+  @Field(() => Float, { nullable: true })
+  stock?: number;
 
   @Field()
   image: string;
