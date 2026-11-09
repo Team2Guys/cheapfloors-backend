@@ -537,12 +537,54 @@ export const contactusEmail = async (data: contactUsEmailInput) => {
     </html>
   `;
 
+  // Internal notification to the team.
   await transporter.sendMail({
     from: process.env.EMAIL_USER,
     to: `${process.env.CONTACT_US_EMAIL},${process.env.ORDER_MAIL3}`,
     subject: `New Contact Form Submission from ${firstName} ${LastName}`,
     html: htmlTemplate,
   });
+
+  // Acknowledgement to the person who submitted the form. Non-fatal: the
+  // submission already reached the team, so a bad customer address must not
+  // turn the whole request into an error.
+  const ackTemplate = `
+    <!DOCTYPE html>
+    <html>
+      <body style="font-family: Arial, sans-serif; margin:0; padding:0;">
+        <div style="max-width:600px; margin:0 auto; padding:20px; border:1px solid #eee; border-radius:5px;">
+          <div style="background-color:#feb907; padding:10px; text-align:center; border-radius:5px 5px 0 0;">
+            <h2 style="margin:0;">We received your message</h2>
+          </div>
+          <div style="padding:20px;">
+            <p>Dear ${firstName} ${LastName},</p>
+            <p>Thank you for contacting Cheap Floors. Our team has received your
+            message and will get back to you as soon as possible.</p>
+            <p style="margin-bottom:4px;"><b>Your message:</b></p>
+            <p style="background:#f7f7f7; padding:12px; border-radius:4px;">${message}</p>
+            <p>If anything is urgent, you can also reach us at
+            <a href="tel:+971505974385">+971 50 597 4385</a> or
+            <a href="mailto:cs@cheapfloors.ae">cs@cheapfloors.ae</a>.</p>
+            <p>Best regards,<br/>Cheap Floors Team</p>
+          </div>
+          <div style="text-align:center; color:#777; font-size:12px; padding:10px;">
+            cheapfloors.ae
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `Cheap Floors ${process.env.EMAIL_USER}`,
+      to: `${email}`,
+      subject: 'We received your message - Cheap Floors',
+      html: ackTemplate,
+    });
+  } catch (error) {
+    console.error('Contact form acknowledgement email failed:', error);
+  }
 };
 
 function formatedDate(date: Date): string {
