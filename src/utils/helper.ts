@@ -8,6 +8,11 @@ import {
   contactUsEmailInput,
   orderEmailInput,
 } from '../sales-products/dto/create-sales-product.input';
+import {
+  OrderSourceForEmail,
+  orderSourceBannerHtml,
+  orderSourceDetailsHtml,
+} from '../sales-products/order-source';
 
 export const customHttpException = (error: any, status?: string) => {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -982,6 +987,7 @@ export const sendEmailHandler = async (
        </div>
        <h3 style="text-align:center; margin:0; padding:0; color: black;">ORDER#${orderId}</h3>
        <p style="text-align:center;margin:0;padding:0; color: black;">${formattedDate}</p>
+       <!--CF_SOURCE_BANNER-->
        
        ${orderStatus === 'delivered'
       ? `
@@ -1174,6 +1180,7 @@ export const sendEmailHandler = async (
              </table>
        </div> `
     }
+<!--CF_SOURCE_DETAILS-->
 </body>
 <div style="text-align: center; margin-top: 20px; margin-bottom: 20px; background-color: #feb907; padding: 14px;">
           <img src="https://res.cloudinary.com/dgwsc8f0g/image/upload/v1739185483/features_lbnmr6.png" alt="features"
@@ -1196,6 +1203,18 @@ export const sendEmailHandler = async (
 
 </html>`;
 
+  // The team's copy of a new order (paid order or free sample) shows where the
+  // customer came from: a highlighted line under the order number and the
+  // full source details at the end. The customer's copy never does.
+  const isNewOrderEmail =
+    orderStatus !== 'delivered' && orderStatus !== 'shipped';
+  const source = orderDetails as unknown as OrderSourceForEmail;
+  const teamTemplate = isNewOrderEmail
+    ? emailTemplate
+        .replace('<!--CF_SOURCE_BANNER-->', orderSourceBannerHtml(source))
+        .replace('<!--CF_SOURCE_DETAILS-->', orderSourceDetailsHtml(source))
+    : emailTemplate;
+
   try {
     await transporter.sendMail({
       from: `${orderStatus === 'delivered' || orderStatus === 'shipped' ? (orderStatus === 'shipped' ? 'Order Shipped @CF' : 'Order Received @CF') : 'Order Confirmation @CF'} ${process.env.EMAIL_USER}`,
@@ -1207,7 +1226,7 @@ export const sendEmailHandler = async (
             : 'Your Cheapfloors Order Has Arrived!'
           : `Order has been confirmed @ CF against Order # ${orderId}`,
 
-      html: emailTemplate,
+      html: teamTemplate,
     });
 
     await transporter.sendMail({

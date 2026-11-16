@@ -15,6 +15,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { CCAvenueService } from './ccavenue.service';
+import { cleanOrderSource, clip, normalisePhone } from './order-source';
 
 @Injectable()
 export class SalesProductsService {
@@ -25,8 +26,10 @@ export class SalesProductsService {
     private ccavenue: CCAvenueService,
   ) { }
 
-  async create(createSalesProductInput: CreateOrderInput) {
+  async create(input: CreateOrderInput) {
     try {
+      // `source` is not a column: it becomes the order's source columns.
+      const { source, ...createSalesProductInput } = input;
       const { totalPrice, products, ...billing_data } =
         createSalesProductInput;
       const orderId = `ORD-${Date.now()}`;
@@ -78,6 +81,8 @@ export class SalesProductsService {
             (item) => item.isfreeSample,
           ),
           products: createSalesProductInput.products,
+          ...cleanOrderSource(source),
+          phoneE164: normalisePhone(createSalesProductInput.phone),
         },
       });
 
@@ -272,20 +277,37 @@ export class SalesProductsService {
 
   async postpaymentStatus(postpayment: PaymentQueryDto) {
     try {
-      const { orderId, amount, ...paymentFields } = postpayment;
+      const { orderId, amount, gatewayStatus, ...paymentFields } = postpayment;
 
       let existingOrder = await this.prisma.salesProducts.findFirst({
         where: { orderId },
       });
-      console.log(existingOrder, 'existingOrder');
       if (!existingOrder) {
         customHttpException('Order not found', 'NOT_FOUND');
         return;
       }
 
       if (existingOrder.paymentStatus) {
-        console.log(existingOrder.paymentStatus, 'existingOrder.paymentStatus');
         return existingOrder;
+      }
+
+      // CCAvenue reported a failed, cancelled or invalid payment. Record it
+      // and leave the order unpaid: no paid flag, no stock taken off, no
+      // confirmation email. It stays an open checkout (Abandoned orders page),
+      // and gatewayStatus tells a failed payment from a customer who never
+      // came back. (Callers that send no `success` at all keep the old path.)
+      if (postpayment.success === false) {
+        return await this.prisma.salesProducts.update({
+          where: { orderId },
+          data: {
+            success: false,
+            gatewayStatus: clip(gatewayStatus, 40) || 'Failure',
+            transactionId: paymentFields.transactionId,
+            integrationId: paymentFields.integrationId,
+            pay_methodType: paymentFields.pay_methodType,
+            paymethod_sub_type: paymentFields.paymethod_sub_type,
+          },
+        });
       }
 
       if (amount !== undefined) {
@@ -307,6 +329,7 @@ export class SalesProductsService {
           checkout: false,
           paymentStatus: true,
           transactionDate: new Date(),
+          ...(gatewayStatus ? { gatewayStatus: clip(gatewayStatus, 40) } : {}),
         },
       });
 
@@ -376,8 +399,9 @@ export class SalesProductsService {
     }
   }
 
-  async freeSample(createSalesProductInput: CreateOrderInput) {
+  async freeSample(input: CreateOrderInput) {
     try {
+      const { source, ...createSalesProductInput } = input;
       const { totalPrice, shipmentFee, products, ...billing_data } =
         createSalesProductInput;
       const orderId = Date.now();
@@ -391,6 +415,8 @@ export class SalesProductsService {
           isfreesample: true,
           products: createSalesProductInput.products,
           shipmentFee: shipmentFee,
+          ...cleanOrderSource(source),
+          phoneE164: normalisePhone(createSalesProductInput.phone),
         },
       });
 

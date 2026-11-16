@@ -41,6 +41,7 @@ export class CCAvenueController {
           pay_methodType: params.payment_mode,
           paymethod_sub_type: params.card_name,
           amount: params.amount,
+          gatewayStatus: params.order_status,
         });
       } catch (error) {
         console.log(error, 'ccavenue postpaymentStatus error');
