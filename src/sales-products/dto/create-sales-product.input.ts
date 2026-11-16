@@ -19,6 +19,49 @@ registerEnumType(OrderStatus, {
   name: 'OrderStatus',
   description: 'Status of the order (placed, shipped, delivered, cancel)',
 });
+
+// Where the customer came from, as the storefront's cf_src cookie recorded it
+// (see order-source.ts). Every field is optional and cleaned on arrival.
+@InputType()
+export class OrderSourceInput {
+  @Field({ nullable: true })
+  channel?: string;
+
+  @Field({ nullable: true })
+  sourceTracked?: string;
+
+  @Field({ nullable: true })
+  firstTouchChannel?: string;
+
+  @Field({ nullable: true })
+  firstTouchDetail?: string;
+
+  @Field({ nullable: true })
+  lastTouchChannel?: string;
+
+  @Field({ nullable: true })
+  lastTouchDetail?: string;
+
+  @Field({ nullable: true })
+  firstVisit?: string;
+
+  @Field({ nullable: true })
+  landingPage?: string;
+
+  @Field({ nullable: true })
+  referrer?: string;
+
+  @Field({ nullable: true })
+  gclid?: string;
+
+  @Field({ nullable: true })
+  fbclid?: string;
+
+  /** JSON array of touches, oldest first. */
+  @Field({ nullable: true })
+  touchPath?: string;
+}
+
 @InputType()
 export class CreateOrderInput {
   @Field()
@@ -68,6 +111,10 @@ export class CreateOrderInput {
 
   @Field(() => Date, { nullable: true })
   deliveryDate: Date;
+
+  // Not a column: the service turns it into the order's source columns.
+  @Field(() => OrderSourceInput, { nullable: true })
+  source?: OrderSourceInput;
 }
 
 // Input DTO for the Product (used within CreateOrderInput)
@@ -155,6 +202,11 @@ export class PaymentQueryDto {
 
   @Field({ nullable: true })
   amount?: string;
+
+  // CCAvenue's order_status (Success, Failure, Aborted...). Set by the
+  // callback controller; the public mutation ignores everything but orderId.
+  @Field({ nullable: true })
+  gatewayStatus?: string;
 }
 
 @InputType()

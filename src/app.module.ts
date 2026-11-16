@@ -20,6 +20,7 @@ import { GcpModule } from './gcp/gcp.module';
 import { RequestCallbacksModule } from './request_callbacks/request_callbacks.module';
 import { B2bQuotesModule } from './b2b_quotes/b2b_quotes.module';
 import { BlogsModule } from './blogs/blogs.module';
+import { WhatsAppClicksModule } from './whatsapp-clicks/whatsapp-clicks.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import {
   ThrottlerGuard,
@@ -69,6 +70,7 @@ import { GqlThrottlerGuard } from './general/GraphQLThrottlerGuard';
     RequestCallbacksModule,
     B2bQuotesModule,
     BlogsModule,
+    WhatsAppClicksModule,
   ],
   controllers: [AppController],
   providers: [

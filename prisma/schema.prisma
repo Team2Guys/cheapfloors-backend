@@ -281,6 +281,49 @@ model salesProducts {
   addInstallation    Boolean?  @default(false)
   installationCost   Int?      @default(0)
   isClearance        Boolean?  @default(false)
+
+  // Where the customer came from (order source tracking). The storefront's
+  // cf_src cookie is sent with createSalesProduct / freeSample, before the
+  // CCAvenue redirect. channel / sourceTracked are the last touch and its
+  // one-line summary; touchPath is the whole path (JSON array, oldest first).
+  // Null on orders placed before tracking began. Admin only: the public Order
+  // query returns them as null.
+  channel           String?
+  sourceTracked     String?
+  firstTouchChannel String?
+  firstTouchDetail  String?
+  lastTouchChannel  String?
+  lastTouchDetail   String?
+  firstVisit        DateTime?
+  landingPage       String?
+  referrer          String?
+  gclid             String?
+  fbclid            String?
+  touchPath         Json?
+  // UAE mobile as +9715XXXXXXXX, for matching WhatsApp chats to orders. Null
+  // for any other number (landline, foreign, malformed).
+  phoneE164         String?
+  // CCAvenue's order_status when it reported back (Success, Failure,
+  // Aborted...). Null while the customer has not come back: an unpaid row
+  // with no gateway status is an abandoned checkout, one with a status other
+  // than Success is a failed payment.
+  gatewayStatus     String?
+
+  @@index([channel, checkoutDate])
+  @@index([phoneE164])
+}
+
+// One row per WhatsApp button click on the storefront, with the source ref
+// added to the prefilled message (e.g. "GADS-spc-flooring-dubai|spc-flooring").
+// No personal data.
+model WhatsAppClick {
+  id        Int      @id @default(autoincrement())
+  ref       String
+  channel   String
+  page      String
+  createdAt DateTime @default(now())
+
+  @@index([channel, createdAt])
 }
 
 model Redirecturls {

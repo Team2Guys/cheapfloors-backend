@@ -224,6 +224,53 @@ export class paymentStatus {
 
   @Field(() => Date, { nullable: true })
   deliveryDate?: Date;
+
+  // Order source tracking (order-source.ts). Admin only: answers to anyone
+  // else (Order, postpaymentStatus, usersOrders) have them set to null.
+  @Field({ nullable: true })
+  channel?: string;
+
+  @Field({ nullable: true })
+  sourceTracked?: string;
+
+  @Field({ nullable: true })
+  firstTouchChannel?: string;
+
+  @Field({ nullable: true })
+  firstTouchDetail?: string;
+
+  @Field({ nullable: true })
+  lastTouchChannel?: string;
+
+  @Field({ nullable: true })
+  lastTouchDetail?: string;
+
+  @Field(() => Date, { nullable: true })
+  firstVisit?: Date;
+
+  @Field({ nullable: true })
+  landingPage?: string;
+
+  @Field({ nullable: true })
+  referrer?: string;
+
+  @Field({ nullable: true })
+  gclid?: string;
+
+  @Field({ nullable: true })
+  fbclid?: string;
+
+  /** The whole touch path, oldest first. */
+  @Field(() => GraphQLJSON, { nullable: true })
+  touchPath?: any;
+
+  /** UAE mobile as +9715XXXXXXXX, for matching WhatsApp chats. */
+  @Field({ nullable: true })
+  phoneE164?: string;
+
+  /** CCAvenue's order_status when it reported back; null = never came back. */
+  @Field({ nullable: true })
+  gatewayStatus?: string;
 }
 
 @ObjectType()

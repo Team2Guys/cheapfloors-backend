@@ -1,4 +1,11 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  Int,
+  Context,
+} from '@nestjs/graphql';
 import { SalesProductsService } from './sales-products.service';
 import {
   ALL_RECORDS,
@@ -16,6 +23,7 @@ import {
   PaymentQueryDto,
 } from './dto/create-sales-product.input';
 import { Public } from '../decorators/public.decorator';
+import { hideOrderSource, RequestLike, requestIsAdmin } from './order-source';
 
 @Resolver(() => SalesProduct)
 export class SalesProductsResolver {
@@ -42,11 +50,14 @@ export class SalesProductsResolver {
   // so the thank-you page can render it.
   @Public()
   @Mutation(() => paymentStatus, { nullable: true })
-  postpaymentStatus(
+  async postpaymentStatus(
     @Args('postpaymentStatus') updatepaymentstatusInput: PaymentQueryDto,
   ) {
-    return this.salesProductsService.findOne(
-      updatepaymentstatusInput.orderId ?? '',
+    // The thank-you page: never the order's source fields (admin only).
+    return hideOrderSource(
+      await this.salesProductsService.findOne(
+        updatepaymentstatusInput.orderId ?? '',
+      ),
     );
   }
 
@@ -83,16 +94,24 @@ export class SalesProductsResolver {
     return this.salesProductsService.findAllFreesample();
   }
 
+  // Public for the thank-you and track-order pages, so the source fields
+  // (gclid, touch path, landing page...) are only filled in for an admin.
   @Public()
   @Query(() => paymentStatus, { name: 'Order' })
-  findOne(@Args('orderId', { type: () => String }) orderId: string) {
-    return this.salesProductsService.findOne(orderId);
+  async findOne(
+    @Args('orderId', { type: () => String }) orderId: string,
+    @Context('req') req?: RequestLike,
+  ) {
+    const order = await this.salesProductsService.findOne(orderId);
+    return requestIsAdmin(req) ? order : hideOrderSource(order);
   }
 
   @Public()
   @Query(() => [paymentStatus], { name: 'usersOrders' })
-  OrdersMyMail(@Args('email', { type: () => String }) email: string) {
-    return this.salesProductsService.findOrderByMail(email);
+  async OrdersMyMail(@Args('email', { type: () => String }) email: string) {
+    const orders = await this.salesProductsService.findOrderByMail(email);
+    // Never the order's source fields (admin only).
+    return (orders ?? []).map((order) => hideOrderSource(order));
   }
 
   @Public()
