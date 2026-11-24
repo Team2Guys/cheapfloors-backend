@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { CreateAppointmentInput } from '../appointments/dto/create-appointment.input';
 import { CreateRequestCallbackInput } from '../request_callbacks/dto/create-request-callback.input';
 import { CreateB2bQuoteInput } from '../b2b_quotes/dto/create-b2b-quote.input';
-import nodemailer from 'nodemailer';
+import { transporter } from './mailer';
 import {
   contactUsEmailInput,
   orderEmailInput,
@@ -39,16 +39,6 @@ export const customHttpException = (error: any, status?: string) => {
     status ? HttpStatus[status] : HttpStatus.INTERNAL_SERVER_ERROR,
   );
 };
-
-const transporter = nodemailer.createTransport({
-  host: 'mail.blindsandcurtains.ae',
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
 
 export const sendAppointmentEmail = async (
   appointmentData: CreateAppointmentInput,
