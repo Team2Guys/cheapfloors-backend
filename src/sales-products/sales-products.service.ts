@@ -414,11 +414,17 @@ export class SalesProductsService {
         createSalesProductInput;
 
       // Same CF-sequential order number as the paid checkout flow.
+      // A self-collect free sample has nothing to pay, so it is complete the
+      // moment it is placed: recorded in the paid-order end state
+      // (paymentStatus true, checkout closed), or the dashboards would file
+      // it as an abandoned checkout.
       const created = await this.prisma.salesProducts.create({
         data: {
           ...createSalesProductInput,
           orderId: `CF-PENDING-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
-          checkout: true,
+          checkout: false,
+          paymentStatus: true,
+          transactionDate: new Date(),
           currency: 'AED',
           isfreesample: true,
           products: createSalesProductInput.products,

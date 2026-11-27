@@ -331,15 +331,40 @@ export const orderSourceLines = (
   ].map(([label, value]) => [label, value || '-'] as [string, string]);
 };
 
-/** The highlighted line at the top of the team's copy of the order email. */
+/**
+ * The team-only source block shown just above "Purchase Details", matching
+ * the cheapblinds order email. Empty when the order carried no source, so an
+ * untracked order shows nothing instead of a "Not tracked" banner.
+ */
 export const orderSourceBannerHtml = (order: OrderSourceForEmail): string => {
-  const tracked = !!order.channel;
-  const summary = tracked
-    ? order.sourceTracked || order.channel
-    : 'Not tracked (no source was sent with this order)';
-  return `<div style="margin: 16px auto 8px; max-width: 640px; padding: 14px 18px; border-radius: 8px; border-left: 6px solid ${tracked ? '#FEB907' : '#9aa0ac'}; background: ${tracked ? '#FFF4D1' : '#F1F2F5'}; font-family: Arial, sans-serif; color: #111;">
-  <p style="margin: 0 0 4px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #5b6170;">Order source${tracked ? ` &middot; ${escapeHtml(order.channel)}` : ''}</p>
-  <p style="margin: 0; font-size: 17px; font-weight: bold; line-height: 1.35;">${escapeHtml(summary)}</p>
+  if (!order.channel) return '';
+  const row = (caption: string, valueHtml: string) =>
+    valueHtml
+      ? `<p style="margin: 2px 0 0; font-size: 13px; line-height: 1.5; font-weight: normal; color: #111; word-break: break-word;"><span style="font-weight: bold;">${caption}</span> ${valueHtml}</p>`
+      : '';
+  const landing = order.landingPage
+    ? order.landingPage.startsWith('http')
+      ? order.landingPage
+      : `${SITE}${order.landingPage}`
+    : '';
+  const first = order.firstTouchDetail || '';
+  const last = order.lastTouchDetail || '';
+  return `<div style="margin: 18px 0 14px; padding: 12px 14px; background: #fdf8f3; border-left: 4px solid #feb907; text-align: left; font-family: Arial, sans-serif;">
+<p style="margin: 0 0 4px; font-size: 11px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; color: #777;">Order source</p>
+${[
+    row('Source:', escapeHtml(order.sourceTracked || order.channel || '')),
+    row('First touch:', escapeHtml(first)),
+    last && last !== first ? row('Last touch:', escapeHtml(last)) : '',
+    row('First visit:', escapeHtml(formatDubaiTime(order.firstVisit))),
+    landing
+      ? row(
+          'Landing page:',
+          `<a href="${escapeHtml(landing)}" style="color: #1a56db;">${escapeHtml(landing)}</a>`,
+        )
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n')}
 </div>`;
 };
 

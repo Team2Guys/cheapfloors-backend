@@ -38,15 +38,17 @@ describe('order email: source in the team copy only', () => {
     process.env.EMAIL_USER = 'orders@cheapfloors.test';
   });
 
-  it('new order: highlighted source near the top and details at the end for the team', async () => {
+  it('new order: source block above Purchase Details and details at the end for the team', async () => {
     await sendEmailHandler(order as any, 'buyer@example.com');
     const [team, customer] = sent();
 
     expect(team.to).toContain('orders@cheapfloors.test');
-    const banner = team.html.indexOf('Order source &middot; Google Ads');
+    const banner = team.html.indexOf('>Order source</p>');
     expect(banner).toBeGreaterThan(-1);
-    // Above the order content, right under the order number.
-    expect(banner).toBeLessThan(team.html.indexOf('Order Confirmation</h1>'));
+    // The cheapblinds layout: inside the order content, just above the
+    // purchase table — not up by the order number.
+    expect(banner).toBeGreaterThan(team.html.indexOf('Order Confirmation</h1>'));
+    expect(banner).toBeLessThan(team.html.indexOf('Purchase Details'));
     expect(team.html).toContain('Order source details (team only)');
     expect(team.html).toContain('gclid=Cj0KCQ-test');
 
@@ -55,12 +57,11 @@ describe('order email: source in the team copy only', () => {
     expect(customer.html).not.toContain('Cj0KCQ-test');
   });
 
-  it('an order placed before tracking says so in the team copy', async () => {
+  it('an untracked order shows no source block at all', async () => {
     const { channel, sourceTracked, lastTouchDetail, gclid, ...untracked } = order;
     await sendEmailHandler(untracked as any, 'buyer@example.com');
     const [team] = sent();
-    expect(team.html).toContain('Not tracked');
-    expect(team.html).not.toContain('Order source details');
+    expect(team.html).not.toContain('Order source');
   });
 
   it('shipped and delivered updates carry no source', async () => {

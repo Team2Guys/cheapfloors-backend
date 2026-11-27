@@ -316,15 +316,15 @@ describe('CCAvenue result: failed payments are not marked paid', () => {
 describe('order email source blocks', () => {
   const order = { ...cleanOrderSource(SOURCE), totalPrice: 2340 };
 
-  it('banner shows the tracked source prominently, escaped', () => {
+  it('banner shows the tracked source, escaped', () => {
     const html = orderSourceBannerHtml({ ...order, sourceTracked: 'Referral: <b>x</b>' });
-    expect(html).toContain('Order source &middot; Google Ads');
+    expect(html).toContain('Order source');
     expect(html).toContain('Referral: &lt;b&gt;x&lt;/b&gt;');
     expect(html).not.toContain('<b>x</b>');
   });
 
-  it('banner says "not tracked" for an order without a source', () => {
-    expect(orderSourceBannerHtml({ totalPrice: 10 })).toContain('Not tracked');
+  it('banner and details are both empty for an order without a source', () => {
+    expect(orderSourceBannerHtml({ totalPrice: 10 })).toBe('');
     expect(orderSourceDetailsHtml({ totalPrice: 10 })).toBe('');
   });
 

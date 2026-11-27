@@ -974,13 +974,12 @@ export const sendEmailHandler = async (
     <div class="main-container">
        <div class="header" style="text-align:center;">
           <img
-             src="https://res.cloudinary.com/dvniplydn/image/upload/v1772187789/logo.jpg_odnlgf.png"
-             alt="Brand Logo">
+             src="https://cheapfloors.ae/assets/images/logo.png"
+             alt="Cheap Floors" width="160" style="max-width:160px; height:auto;">
        </div>
        <h3 style="text-align:center; margin:0; padding:0; color: black;">ORDER#${orderId}</h3>
        <p style="text-align:center;margin:0;padding:0; color: black;">${formattedDate}</p>
-       <!--CF_SOURCE_BANNER-->
-       
+
        ${orderStatus === 'delivered'
       ? `
      <h1 style="text-align:center; color: black;">${orderDetails.isfreesample ? 'Free Sample Goods Received' : 'Goods Received'}</h1>
@@ -1031,6 +1030,7 @@ export const sendEmailHandler = async (
        <p style="text-align:center;" class="order-para">Our team will be in touch soon to arrange the delivery with you.</p>
        <p style="text-align:center;" class="order-para">All The Best,</p>
        <p style="text-align:center;" class="order-para">The Team at<strong> @"cheapfloors"</strong></p>
+       <!--CF_SOURCE_BANNER-->
        <div class="purchase-details">
           <h3>Purchase Details</h3>
           <table class="purchase-table">
