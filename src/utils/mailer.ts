@@ -71,3 +71,15 @@ const sendMail = async (mail: any): Promise<any> => {
 };
 
 export const transporter = { sendMail };
+
+// Internal team inboxes for notifications. Unset ORDER_MAILn slots are
+// skipped so a missing variable can't inject a literal "undefined" recipient.
+export const teamRecipients = (): string =>
+  [
+    process.env.EMAIL_USER,
+    process.env.ORDER_MAIL1,
+    process.env.ORDER_MAIL2,
+    process.env.ORDER_MAIL3,
+  ]
+    .filter(Boolean)
+    .join(',');

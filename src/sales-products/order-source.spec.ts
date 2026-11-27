@@ -214,11 +214,19 @@ describe('SalesProductsService saves the source with the order', () => {
   let service: SalesProductsService;
 
   beforeEach(() => {
+    // Mirrors Prisma: create returns the row (with its id), update returns
+    // the full updated row, not just the patch.
+    let lastCreated: any = null;
     prisma = {
       salesProducts: {
-        create: jest.fn().mockImplementation(({ data }) => Promise.resolve(data)),
+        create: jest.fn().mockImplementation(({ data }) => {
+          lastCreated = { ...data, id: 7 };
+          return Promise.resolve(lastCreated);
+        }),
         findFirst: jest.fn(),
-        update: jest.fn().mockImplementation(({ data }) => Promise.resolve(data)),
+        update: jest.fn().mockImplementation(({ data }) =>
+          Promise.resolve({ ...(lastCreated ?? {}), ...data }),
+        ),
       },
       products: { update: jest.fn() },
       acessories: { update: jest.fn(), updateMany: jest.fn() },

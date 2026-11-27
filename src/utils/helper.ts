@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { CreateAppointmentInput } from '../appointments/dto/create-appointment.input';
 import { CreateRequestCallbackInput } from '../request_callbacks/dto/create-request-callback.input';
 import { CreateB2bQuoteInput } from '../b2b_quotes/dto/create-b2b-quote.input';
-import { transporter } from './mailer';
+import { transporter, teamRecipients } from './mailer';
 import {
   contactUsEmailInput,
   orderEmailInput,
@@ -226,7 +226,7 @@ export const sendAppointmentEmail = async (
     });
     await transporter.sendMail({
       from: `${AppointsType == 'appointments' ? 'Measurement Appointment' : 'Installation Appointments'} ${process.env.EMAIL_USER}`,
-      to: `${process.env.EMAIL_USER},${process.env.ORDER_MAIL1},${process.env.ORDER_MAIL2},${process.env.ORDER_MAIL3}`,
+      to: teamRecipients(),
       subject: `Appointment Request Confirmation - ${AppointsType || 'General'}`,
       html: htmlTemplate,
     });
@@ -280,7 +280,7 @@ export const sendRequestCallbackEmail = async (
     // Internal notification to the team.
     await transporter.sendMail({
       from: `Callback Request @CF ${process.env.EMAIL_USER}`,
-      to: `${process.env.EMAIL_USER},${process.env.ORDER_MAIL1},${process.env.ORDER_MAIL2},${process.env.ORDER_MAIL3}`,
+      to: teamRecipients(),
       subject: `New Callback Request from ${name}`,
       html: htmlTemplate,
     });
@@ -443,7 +443,7 @@ export const sendB2BQuoteEmail = async (quoteData: CreateB2bQuoteInput) => {
     // Internal notification to the B2B / sales team.
     await transporter.sendMail({
       from: `B2B Quote Request @CF ${process.env.EMAIL_USER}`,
-      to: `${process.env.EMAIL_USER},${process.env.ORDER_MAIL1},${process.env.ORDER_MAIL2},${process.env.ORDER_MAIL3}`,
+      to: teamRecipients(),
       subject: `New B2B Flooring Quote Request from ${companyName}`,
       html: htmlTemplate,
     });
@@ -535,7 +535,9 @@ export const contactusEmail = async (data: contactUsEmailInput) => {
   // Internal notification to the team.
   await transporter.sendMail({
     from: process.env.EMAIL_USER,
-    to: `${process.env.CONTACT_US_EMAIL},${process.env.ORDER_MAIL3}`,
+    to: [process.env.CONTACT_US_EMAIL, process.env.ORDER_MAIL3]
+      .filter(Boolean)
+      .join(','),
     subject: `New Contact Form Submission from ${firstName} ${LastName}`,
     html: htmlTemplate,
   });
@@ -1205,33 +1207,41 @@ export const sendEmailHandler = async (
         .replace('<!--CF_SOURCE_DETAILS-->', orderSourceDetailsHtml(source))
     : emailTemplate;
 
-  try {
-    await transporter.sendMail({
-      from: `${orderStatus === 'delivered' || orderStatus === 'shipped' ? (orderStatus === 'shipped' ? 'Order Shipped @CF' : 'Order Received @CF') : 'Order Confirmation @CF'} ${process.env.EMAIL_USER}`,
-      to: `${process.env.EMAIL_USER},${process.env.ORDER_MAIL1},${process.env.ORDER_MAIL2},${process.env.ORDER_MAIL3}`,
-      subject:
-        orderStatus === 'delivered' || orderStatus === 'shipped'
-          ? orderStatus === 'shipped'
-            ? 'Your Cheapfloors Order Is On Its Way!'
-            : 'Your Cheapfloors Order Has Arrived!'
-          : `Order has been confirmed @ CF against Order # ${orderId}`,
+  const fromLine = `${orderStatus === 'delivered' || orderStatus === 'shipped' ? (orderStatus === 'shipped' ? 'Order Shipped @CF' : 'Order Received @CF') : 'Order Confirmation @CF'} ${process.env.EMAIL_USER}`;
+  const subjectLine =
+    orderStatus === 'delivered' || orderStatus === 'shipped'
+      ? orderStatus === 'shipped'
+        ? 'Your Cheapfloors Order Is On Its Way!'
+        : 'Your Cheapfloors Order Has Arrived!'
+      : `Order has been confirmed @ CF against Order # ${orderId}`;
 
+  // The order is already recorded (and, for a paid order, the payment taken)
+  // by the time this runs: one dead mailbox must not block the other copy,
+  // and a mail failure must never bubble up and fail the payment callback.
+  const sends = await Promise.allSettled([
+    transporter.sendMail({
+      from: fromLine,
+      to: teamRecipients(),
+      subject: subjectLine,
       html: teamTemplate,
-    });
-
-    await transporter.sendMail({
-      from: `${orderStatus === 'delivered' || orderStatus === 'shipped' ? (orderStatus === 'shipped' ? 'Order Shipped @CF' : 'Order Received @CF') : 'Order Confirmation @CF'} ${process.env.EMAIL_USER}`,
-      to: CustomerEmail,
-      subject:
-        orderStatus === 'delivered' || orderStatus === 'shipped'
-          ? orderStatus === 'shipped'
-            ? 'Your Cheapfloors Order Is On Its Way!'
-            : 'Your Cheapfloors Order Has Arrived!'
-          : `Order has been confirmed @ CF against Order # ${orderId}`,
-
-      html: emailTemplate,
-    });
-  } catch (error) {
-    throw new Error(error.message);
-  }
+    }),
+    ...(CustomerEmail
+      ? [
+          transporter.sendMail({
+            from: fromLine,
+            to: CustomerEmail,
+            subject: subjectLine,
+            html: emailTemplate,
+          }),
+        ]
+      : []),
+  ]);
+  sends.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      console.error(
+        `Order email (${index === 0 ? 'team' : 'customer'}) failed for ${orderId}:`,
+        result.reason?.message ?? result.reason,
+      );
+    }
+  });
 };

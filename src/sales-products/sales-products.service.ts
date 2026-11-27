@@ -32,7 +32,30 @@ export class SalesProductsService {
       const { source, ...createSalesProductInput } = input;
       const { totalPrice, products, ...billing_data } =
         createSalesProductInput;
-      const orderId = `ORD-${Date.now()}`;
+
+      // Human-friendly sequential order number (CF10001, CF10002, ...): the
+      // row is created first with a unique placeholder, then stamped from its
+      // autoincrement id, so two simultaneous checkouts can never collide.
+      const created = await this.prisma.salesProducts.create({
+        data: {
+          ...createSalesProductInput,
+          orderId: `CF-PENDING-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+          checkout: true,
+          currency: 'AED',
+          isfreesample: createSalesProductInput.products.some(
+            (item) => item.isfreeSample,
+          ),
+          products: createSalesProductInput.products,
+          ...cleanOrderSource(source),
+          phoneE164: normalisePhone(createSalesProductInput.phone),
+        },
+      });
+      const orderId = `CF${10000 + created.id}`;
+      await this.prisma.salesProducts.update({
+        where: { id: created.id },
+        data: { orderId },
+      });
+
       const billingCity =
         billing_data.city?.toLowerCase() === 'other'
           ? billing_data.otherCity
@@ -70,21 +93,6 @@ export class SalesProductsService {
       this.logger.log(
         `[ccavenue] order ${orderId} encRequest: ${encRequest} length: ${encRequest.length}`,
       );
-
-      await this.prisma.salesProducts.create({
-        data: {
-          ...createSalesProductInput,
-          orderId,
-          checkout: true,
-          currency: 'AED',
-          isfreesample: createSalesProductInput.products.some(
-            (item) => item.isfreeSample,
-          ),
-          products: createSalesProductInput.products,
-          ...cleanOrderSource(source),
-          phoneE164: normalisePhone(createSalesProductInput.phone),
-        },
-      });
 
       return {
         paymentKey: {
@@ -404,12 +412,12 @@ export class SalesProductsService {
       const { source, ...createSalesProductInput } = input;
       const { totalPrice, shipmentFee, products, ...billing_data } =
         createSalesProductInput;
-      const orderId = Date.now();
 
-      let existingOrder = await this.prisma.salesProducts.create({
+      // Same CF-sequential order number as the paid checkout flow.
+      const created = await this.prisma.salesProducts.create({
         data: {
           ...createSalesProductInput,
-          orderId: String(orderId),
+          orderId: `CF-PENDING-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
           checkout: true,
           currency: 'AED',
           isfreesample: true,
@@ -418,6 +426,11 @@ export class SalesProductsService {
           ...cleanOrderSource(source),
           phoneE164: normalisePhone(createSalesProductInput.phone),
         },
+      });
+      const orderId = `CF${10000 + created.id}`;
+      const existingOrder = await this.prisma.salesProducts.update({
+        where: { id: created.id },
+        data: { orderId },
       });
 
       await sendEmailHandler(
